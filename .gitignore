@@ -1,0 +1,8 @@
+.env
+node_modules/
+vendor/
+__pycache__/
+.venv/
+dist/
+storage/logs/
+*.log
