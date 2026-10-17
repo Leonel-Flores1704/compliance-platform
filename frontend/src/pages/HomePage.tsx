@@ -10,7 +10,8 @@ export default function HomePage() {
     retry: false,
     queryFn: async () => {
       try {
-        const res = await api.get<Health>('/api/health')
+        // const res = await api.get<Health>('/api/health')
+        const res = await api.get<Health>('http://localhost:8000/api/health')
         return res.data
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.data?.status) {
