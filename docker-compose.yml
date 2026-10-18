@@ -50,6 +50,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
       - documents_storage:/var/www/html/storage/app/documents
     environment: &laravel-env
       APP_ENV: local
@@ -77,7 +78,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 15s
+      start_period: 60s
 
   queue-worker:
     build: ./backend
@@ -85,6 +86,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
       - documents_storage:/var/www/html/storage/app/documents
     environment: *laravel-env
     depends_on:
@@ -99,7 +101,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 120s
+      start_period: 10s
 
   frontend:
     build: ./frontend
@@ -120,3 +122,4 @@ services:
 volumes:
   pg_data:
   documents_storage:
+  backend_vendor:
