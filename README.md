@@ -12,7 +12,7 @@ Monorepo: React frontend, Laravel API, FastAPI AI service and PostgreSQL (pgvect
 ## Setup
 
 ```bash
-git clone https://github.com/Leonel-Flores1704/compliance-platform.git
+git clone -b develop https://github.com/Leonel-Flores1704/compliance-platform.git
 cd compliance-platform
 cp .env.example .env
 ```
