@@ -1,0 +1,122 @@
+[
+  {
+    "code": "11",
+    "name": "Agriculture, forestry, fishing and hunting",
+    "name_es": "Agricultura, cría y explotación de animales, aprovechamiento forestal, pesca y caza",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "21",
+    "name": "Mining, quarrying, and oil and gas extraction",
+    "name_es": "Minería",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "22",
+    "name": "Utilities",
+    "name_es": "Generación, transmisión, distribución y comercialización de energía eléctrica, suministro de agua y de gas natural por ductos al consumidor final",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "23",
+    "name": "Construction",
+    "name_es": "Construcción",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "31-33",
+    "name": "Manufacturing",
+    "name_es": "Industrias manufactureras",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "43",
+    "name": "Wholesale trade",
+    "name_es": "Comercio al por mayor",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "46",
+    "name": "Retail trade",
+    "name_es": "Comercio al por menor",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "48-49",
+    "name": "Transportation and warehousing",
+    "name_es": "Transportes, correos y almacenamiento",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "51",
+    "name": "Information and cultural industries",
+    "name_es": "Información en medios masivos",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "52",
+    "name": "Finance and insurance",
+    "name_es": "Servicios financieros y de seguros",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "53",
+    "name": "Real estate and rental and leasing",
+    "name_es": "Servicios inmobiliarios y de alquiler de bienes muebles e intangibles",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "54",
+    "name": "Professional, scientific and technical services",
+    "name_es": "Servicios profesionales, científicos y técnicos",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "55",
+    "name": "Management of companies and enterprises",
+    "name_es": "Corporativos",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "56",
+    "name": "Administrative and support, waste management and remediation services",
+    "name_es": "Servicios de apoyo a los negocios y manejo de residuos, y servicios de remediación",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "61",
+    "name": "Educational services",
+    "name_es": "Servicios educativos",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "62",
+    "name": "Health care and social assistance",
+    "name_es": "Servicios de salud y de asistencia social",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "71",
+    "name": "Arts, entertainment and recreation",
+    "name_es": "Servicios de esparcimiento culturales y deportivos, y otros servicios recreativos",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "72",
+    "name": "Accommodation and food services",
+    "name_es": "Servicios de alojamiento temporal y de preparación de alimentos y bebidas",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "81",
+    "name": "Other services (except public administration)",
+    "name_es": "Otros servicios excepto actividades gubernamentales",
+    "source": "SCIAN 2023 sector"
+  },
+  {
+    "code": "93",
+    "name": "Public administration",
+    "name_es": "Actividades legislativas, gubernamentales, de impartición de justicia y de organismos internacionales y extraterritoriales",
+    "source": "SCIAN 2023 sector"
+  }
+]
