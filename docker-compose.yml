@@ -68,6 +68,8 @@ services:
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
       FRONTEND_URL: http://localhost:5173
       SANCTUM_STATEFUL_DOMAINS: localhost:5173
+      SESSION_SECURE_COOKIE: "true"
+      SESSION_SAME_SITE: "lax"
     depends_on:
       db:
         condition: service_healthy
@@ -142,3 +144,4 @@ volumes:
   pg_data:
   documents_storage:
   backend_vendor:
+  certbot_www:
