@@ -1,0 +1,189 @@
+Project compliance_platform { database_type: 'PostgreSQL' }
+
+Table organization_types {
+  code varchar(50) [pk]
+  name varchar(100)
+}
+Table industries {
+  code varchar(50) [pk]
+  name varchar(100)
+}
+Table mexican_states {
+  code varchar(50) [pk]
+  name varchar(100)
+}
+Table business_activities {
+  code varchar(50) [pk]
+  name varchar(150)
+}
+Table document_categories {
+  code varchar(50) [pk]
+  name varchar(100)
+  requires_expiration_date boolean
+}
+Table organizations {
+  id bigint [pk]
+  legal_name varchar(150) [unique]
+  organization_type varchar(50)
+  industry varchar(50)
+  state varchar(50)
+  municipality varchar(100)
+  employees_count integer
+  business_activities jsonb
+  is_active boolean
+  created_at timestamp
+  updated_at timestamp
+}
+Table users {
+  id bigint [pk]
+  organization_id bigint
+  name varchar(100)
+  email varchar(255) [unique]
+  password varchar
+  phone text
+  role varchar(30)
+  is_active boolean
+  failed_login_attempts smallint
+  locked_until timestamp
+  last_login_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+Table documents {
+  id bigint [pk]
+  organization_id bigint
+  name varchar(150)
+  category varchar(50)
+  access_level varchar(20)
+  is_archived boolean
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+}
+Table document_versions {
+  id bigint [pk]
+  document_id bigint
+  version_label varchar(20)
+  storage_path varchar(255)
+  original_filename varchar(255)
+  mime_type varchar(100)
+  size_bytes bigint
+  sha256 char(64)
+  expiration_date date
+  status varchar(20)
+  failure_reason varchar(255)
+  is_current boolean
+  uploaded_by bigint
+  uploaded_at timestamp
+  queued_at timestamp
+  processing_started_at timestamp
+  processed_at timestamp
+}
+Table compliance_requirements {
+  id bigint [pk]
+  organization_id bigint
+  name varchar(150)
+  description text
+  regulation varchar(150)
+  deadline date
+  responsible_user_id bigint
+  status varchar(20)
+  applicability_criteria jsonb
+  applies boolean
+  notification_periods jsonb
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+}
+Table required_documents {
+  id bigint [pk]
+  compliance_requirement_id bigint
+  name varchar(150)
+  category varchar(50)
+  document_id bigint
+  created_at timestamp
+  updated_at timestamp
+}
+Table alerts {
+  id bigint [pk]
+  user_id bigint
+  compliance_requirement_id bigint
+  document_version_id bigint
+  type varchar(30)
+  period_days smallint
+  message varchar(500)
+  due_date date
+  read_at timestamp
+  created_at timestamp
+}
+Table audit_logs {
+  id bigint [pk]
+  user_id bigint
+  category varchar(20)
+  action varchar(60)
+  resource_type varchar(60)
+  resource_id bigint
+  ip_address inet
+  user_agent varchar(255)
+  metadata jsonb
+  created_at timestamp
+}
+Table document_chunks {
+  id bigint [pk]
+  organization_id bigint
+  document_id bigint
+  document_version_id bigint
+  chunk_index integer
+  content text
+  page_start integer
+  page_end integer
+  section varchar(255)
+  is_current boolean
+  embedding vector
+  created_at timestamp
+}
+Table ai_questions {
+  id bigint [pk]
+  user_id bigint
+  question text
+  answer text
+  status varchar(30)
+  citations jsonb
+  latency_ms integer
+  created_at timestamp
+}
+Table ai_feedback {
+  id bigint [pk]
+  ai_question_id bigint
+  user_id bigint
+  rating varchar(12)
+  comment varchar(500)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Ref: organizations.organization_type > organization_types.code
+Ref: organizations.industry > industries.code
+Ref: organizations.state > mexican_states.code
+Ref: users.organization_id > organizations.id
+Ref: documents.organization_id > organizations.id
+Ref: documents.category > document_categories.code
+Ref: documents.created_by > users.id
+Ref: document_versions.document_id > documents.id
+Ref: document_versions.uploaded_by > users.id
+Ref: compliance_requirements.organization_id > organizations.id
+Ref: compliance_requirements.responsible_user_id > users.id
+Ref: compliance_requirements.created_by > users.id
+Ref: required_documents.compliance_requirement_id > compliance_requirements.id
+Ref: required_documents.category > document_categories.code
+Ref: required_documents.document_id > documents.id
+Ref: alerts.user_id > users.id
+Ref: alerts.compliance_requirement_id > compliance_requirements.id
+Ref: alerts.document_version_id > document_versions.id
+Ref: audit_logs.user_id > users.id
+Ref: document_chunks.organization_id > organizations.id
+Ref: document_chunks.document_id > documents.id
+Ref: document_chunks.document_version_id > document_versions.id
+Ref: ai_questions.user_id > users.id
+Ref: ai_feedback.ai_question_id > ai_questions.id
+Ref: ai_feedback.user_id > users.id
