@@ -1,0 +1,334 @@
+{
+  "info": {
+    "_postman_id": "d134b9d0-8f92-4217-a001-44755f190c12",
+    "name": "Compliance AI Service",
+    "description": "Exact HTTP Service Contract between Laravel backend and FastAPI AI microservice (CMP-07, NFR-022). React never calls FastAPI directly; all inter-service requests use X-Internal-Token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8001",
+      "type": "string"
+    },
+    {
+      "key": "AI_SERVICE_TOKEN",
+      "value": "compliance_ai_secret_token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "{{AI_SERVICE_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check status of FastAPI microservice, vector store, and LLM provider."
+      },
+      "response": [
+        {
+          "name": "Health 200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "{{AI_SERVICE_TOKEN}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"ok\",\n  \"vector_store\": \"ok\",\n  \"llm_provider\": \"ok\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Ingest Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "{{AI_SERVICE_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "sample.pdf",
+              "description": "Decrypted file payload sent by Laravel"
+            },
+            {
+              "key": "organization_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "document_id",
+              "value": "10",
+              "type": "text"
+            },
+            {
+              "key": "document_version_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "mime_type",
+              "value": "application/pdf",
+              "type": "text"
+            },
+            {
+              "key": "access_level",
+              "value": "confidential",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/documents/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "documents", "ingest"]
+        },
+        "description": "Synchronously ingest, extract text, chunk, and index a document (timeout 300 s)."
+      },
+      "response": [
+        {
+          "name": "Ingest 200 OK",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "{{AI_SERVICE_TOKEN}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "organization_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "document_id",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "document_version_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "mime_type",
+                  "value": "application/pdf",
+                  "type": "text"
+                },
+                {
+                  "key": "access_level",
+                  "value": "confidential",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/documents/ingest",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "documents", "ingest"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"processed\",\n  \"chunks\": 42,\n  \"pages\": 12,\n  \"ocr_used\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Set Current Version",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "{{AI_SERVICE_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"document_version_id\": 7\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/documents/10/set-current",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "documents", "10", "set-current"]
+        },
+        "description": "Marks that version's chunks as current and the rest as not current."
+      },
+      "response": [
+        {
+          "name": "Set Current 200 OK",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "{{AI_SERVICE_TOKEN}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_version_id\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/documents/10/set-current",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "documents", "10", "set-current"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"ok\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Ask Question (RAG)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Internal-Token",
+            "value": "{{AI_SERVICE_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"What are the compliance requirements for data retention?\",\n  \"user_id\": 1,\n  \"organization_id\": 1,\n  \"allowed_document_ids\": [\n    10,\n    11,\n    12\n  ],\n  \"request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/ask",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "ask"]
+        },
+        "description": "Semantic search and question answering across authorized compliance documents."
+      },
+      "response": [
+        {
+          "name": "Ask 200 OK",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Internal-Token",
+                "value": "{{AI_SERVICE_TOKEN}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the compliance requirements for data retention?\",\n  \"user_id\": 1,\n  \"organization_id\": 1,\n  \"allowed_document_ids\": [10, 11, 12],\n  \"request_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/ask",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "ask"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"answer\": \"According to section 4.2 of the Compliance Manual, compliance records and audit logs must be maintained for at least 7 years.\",\n  \"status\": \"answered\",\n  \"citations\": [\n    {\n      \"document_id\": 10,\n      \"document_version_id\": 1,\n      \"document_name\": \"Compliance_Manual_2026.pdf\",\n      \"page\": 4,\n      \"section\": \"4.2 Retention Policy\",\n      \"chunk_id\": \"chunk_101\",\n      \"score\": 0.91\n    }\n  ],\n  \"disclaimer\": \"This answer was generated automatically from indexed compliance documents for informational purposes only.\",\n  \"latency_ms\": 450\n}"
+        }
+      ]
+    }
+  ]
+}

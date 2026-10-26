@@ -1,0 +1,798 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Compliance AI Service",
+    "description": "FastAPI service for compliance document ingestion, indexing, and RAG Q&A.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check the health of the AI service, vector store connection, and LLM provider.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Service is healthy and ready to accept requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong X-Internal-Token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "UNAUTHORIZED",
+                  "message": "Invalid internal token."
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/v1/documents/ingest": {
+      "post": {
+        "summary": "Ingest and index a document",
+        "description": "Synchronously process and index a document (timeout 300 s). Validates file type and extracts content.",
+        "operationId": "ingest_document_v1_documents_ingest_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-simulate-error",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional error simulation trigger",
+              "title": "X-Simulate-Error"
+            },
+            "description": "Optional error simulation trigger"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_document_v1_documents_ingest_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document successfully ingested, chunked, and indexed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong X-Internal-Token.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "UNAUTHORIZED",
+                  "message": "Invalid internal token."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "File type not PDF, DOCX or TXT.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "UNSUPPORTED_FILE_TYPE",
+                  "message": "Only PDF, DOCX and TXT files can be processed."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed, text extraction failed, or OCR failed.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "Request body fails validation",
+                    "value": {
+                      "error_code": "VALIDATION_ERROR",
+                      "message": "question: String should have at least 3 characters"
+                    }
+                  },
+                  "extraction_failed": {
+                    "summary": "Text could not be extracted",
+                    "value": {
+                      "error_code": "EXTRACTION_FAILED",
+                      "message": "The file could not be read. It may be damaged or password-protected."
+                    }
+                  },
+                  "ocr_failed": {
+                    "summary": "OCR failed",
+                    "value": {
+                      "error_code": "OCR_FAILED",
+                      "message": "The scanned document could not be read."
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Embedding provider failed.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "EMBEDDING_FAILED",
+                  "message": "The document could not be indexed."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider not in authorized list.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "PROVIDER_NOT_AUTHORIZED",
+                  "message": "The AI provider is not authorized."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{document_id}/set-current": {
+      "post": {
+        "summary": "Set active document version",
+        "description": "Marks that version's chunks as current and the rest as not current.",
+        "operationId": "set_current_version_v1_documents__document_id__set_current_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Document ID",
+              "title": "Document Id"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCurrentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Target version marked as current and historical versions updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetCurrentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong X-Internal-Token.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "UNAUTHORIZED",
+                  "message": "Invalid internal token."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed, text extraction failed, or OCR failed.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "Request body fails validation",
+                    "value": {
+                      "error_code": "VALIDATION_ERROR",
+                      "message": "question: String should have at least 3 characters"
+                    }
+                  },
+                  "extraction_failed": {
+                    "summary": "Text could not be extracted",
+                    "value": {
+                      "error_code": "EXTRACTION_FAILED",
+                      "message": "The file could not be read. It may be damaged or password-protected."
+                    }
+                  },
+                  "ocr_failed": {
+                    "summary": "OCR failed",
+                    "value": {
+                      "error_code": "OCR_FAILED",
+                      "message": "The scanned document could not be read."
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ask": {
+      "post": {
+        "summary": "Ask compliance question (RAG)",
+        "description": "Perform semantic retrieval across authorized documents and synthesize an answer.",
+        "operationId": "ask_question_v1_ask_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-simulate-error",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional error simulation trigger",
+              "title": "X-Simulate-Error"
+            },
+            "description": "Optional error simulation trigger"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Question successfully processed by RAG pipeline.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong X-Internal-Token.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "UNAUTHORIZED",
+                  "message": "Invalid internal token."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed, text extraction failed, or OCR failed.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "Request body fails validation",
+                    "value": {
+                      "error_code": "VALIDATION_ERROR",
+                      "message": "question: String should have at least 3 characters"
+                    }
+                  },
+                  "extraction_failed": {
+                    "summary": "Text could not be extracted",
+                    "value": {
+                      "error_code": "EXTRACTION_FAILED",
+                      "message": "The file could not be read. It may be damaged or password-protected."
+                    }
+                  },
+                  "ocr_failed": {
+                    "summary": "OCR failed",
+                    "value": {
+                      "error_code": "OCR_FAILED",
+                      "message": "The scanned document could not be read."
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Embedding provider failed.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "EMBEDDING_FAILED",
+                  "message": "The document could not be indexed."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider not in authorized list.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "PROVIDER_NOT_AUTHORIZED",
+                  "message": "The AI provider is not authorized."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LLM did not answer in 10 s.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error_code": "LLM_TIMEOUT",
+                  "message": "The language model did not respond in time."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Question",
+            "description": "User question regarding compliance documentation (3-1000 chars)",
+            "examples": [
+              "What are the compliance requirements for data retention?"
+            ]
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id",
+            "description": "User ID making the query",
+            "examples": [
+              1
+            ]
+          },
+          "organization_id": {
+            "type": "integer",
+            "title": "Organization Id",
+            "description": "Organization ID context",
+            "examples": [
+              1
+            ]
+          },
+          "allowed_document_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Allowed Document Ids",
+            "description": "List of document IDs the user is authorized to search",
+            "examples": [
+              1,
+              2,
+              3
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "UUID tracking identifier for the request",
+            "examples": [
+              "550e8400-e29b-41d4-a716-446655440000"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "user_id",
+          "organization_id",
+          "allowed_document_ids",
+          "request_id"
+        ],
+        "title": "AskRequest"
+      },
+      "AskResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "Generated answer synthesized from indexed documents",
+            "examples": [
+              "Data must be retained for at least 7 years in accordance with regulatory compliance standards."
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "insufficient_information"
+            ],
+            "title": "Status",
+            "description": "Status indicating whether enough context was found",
+            "examples": [
+              "answered"
+            ]
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "List of document citations supporting the answer"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "description": "Legal and compliance disclaimer",
+            "examples": [
+              "This answer is AI-generated and for informational purposes only."
+            ]
+          },
+          "latency_ms": {
+            "type": "integer",
+            "title": "Latency Ms",
+            "description": "Processing latency in milliseconds",
+            "examples": [
+              450
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "status",
+          "disclaimer",
+          "latency_ms"
+        ],
+        "title": "AskResponse"
+      },
+      "Body_ingest_document_v1_documents_ingest_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "Decrypted file payload sent by Laravel"
+          },
+          "organization_id": {
+            "type": "integer",
+            "title": "Organization Id",
+            "description": "Organization identifier"
+          },
+          "document_id": {
+            "type": "integer",
+            "title": "Document Id",
+            "description": "Document identifier"
+          },
+          "document_version_id": {
+            "type": "integer",
+            "title": "Document Version Id",
+            "description": "Document version identifier"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type",
+            "description": "MIME type of the file"
+          },
+          "access_level": {
+            "type": "string",
+            "title": "Access Level",
+            "description": "Access level (e.g. confidential, internal, public)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "organization_id",
+          "document_id",
+          "document_version_id",
+          "mime_type",
+          "access_level"
+        ],
+        "title": "Body_ingest_document_v1_documents_ingest_post"
+      },
+      "Citation": {
+        "properties": {
+          "document_id": {
+            "type": "integer",
+            "title": "Document Id",
+            "description": "ID of the referenced document",
+            "examples": [
+              1
+            ]
+          },
+          "document_version_id": {
+            "type": "integer",
+            "title": "Document Version Id",
+            "description": "ID of the referenced document version",
+            "examples": [
+              1
+            ]
+          },
+          "document_name": {
+            "type": "string",
+            "title": "Document Name",
+            "description": "Name of the document",
+            "examples": [
+              "Security_Policy_2026.pdf"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Page number where snippet was found",
+            "examples": [
+              4
+            ]
+          },
+          "section": {
+            "type": "string",
+            "title": "Section",
+            "description": "Section title or identifier",
+            "examples": [
+              "4.2 Data Retention Schedule"
+            ]
+          },
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id",
+            "description": "Chunk identifier",
+            "examples": [
+              "chunk_101"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Relevance similarity score",
+            "examples": [
+              0.89
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "document_version_id",
+          "document_name",
+          "page",
+          "section",
+          "chunk_id",
+          "score"
+        ],
+        "title": "Citation"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "title": "Error Code",
+            "description": "Machine-readable error code",
+            "examples": [
+              "UNAUTHORIZED"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable error description",
+            "examples": [
+              "Invalid internal token."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "error_code",
+          "message"
+        ],
+        "title": "ErrorResponse"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok",
+            "examples": [
+              "ok"
+            ]
+          },
+          "vector_store": {
+            "type": "string",
+            "title": "Vector Store",
+            "default": "ok",
+            "examples": [
+              "ok"
+            ]
+          },
+          "llm_provider": {
+            "type": "string",
+            "title": "Llm Provider",
+            "default": "ok",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "IngestResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "processed",
+            "examples": [
+              "processed"
+            ]
+          },
+          "chunks": {
+            "type": "integer",
+            "title": "Chunks",
+            "default": 42,
+            "examples": [
+              42
+            ]
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "default": 12,
+            "examples": [
+              12
+            ]
+          },
+          "ocr_used": {
+            "type": "boolean",
+            "title": "Ocr Used",
+            "default": false,
+            "examples": [
+              false
+            ]
+          }
+        },
+        "type": "object",
+        "title": "IngestResponse"
+      },
+      "SetCurrentRequest": {
+        "properties": {
+          "document_version_id": {
+            "type": "integer",
+            "title": "Document Version Id",
+            "description": "ID of the document version to mark as current",
+            "examples": [
+              7
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_version_id"
+        ],
+        "title": "SetCurrentRequest"
+      },
+      "SetCurrentResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "SetCurrentResponse"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "description": "Internal service authentication token passed between Laravel and FastAPI",
+        "in": "header",
+        "name": "X-Internal-Token"
+      }
+    }
+  }
+}
