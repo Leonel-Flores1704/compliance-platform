@@ -48,6 +48,16 @@ The first build downloads images and can take several minutes. Once the images a
 | db | 5432 | PostgreSQL 16 + pgvector |
 | redis | 6379 | Redis 7 |
 
+## Optional: Nginx reverse proxy
+
+Nginx is not part of the 6 default containers. To run it:
+
+```bash
+docker compose --profile proxy up -d
+```
+
+The API is then reachable through the proxy at http://localhost:8080/api/health. Serving the frontend through the proxy is not supported yet. Stop it with `docker compose --profile proxy down`.
+
 ## Running tests
 
 ```bash

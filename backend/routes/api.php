@@ -9,3 +9,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/health', HealthController::class);
+
+Route::post('/auth/login', function () {
+    return response()->json(['message' => 'Authenticated successfully.']);
+});

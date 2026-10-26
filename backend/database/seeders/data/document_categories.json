@@ -1,0 +1,37 @@
+[
+  {
+    "code": "permit_license",
+    "name": "Permit/License",
+    "requires_expiration_date": true
+  },
+  {
+    "code": "policy",
+    "name": "Policy",
+    "requires_expiration_date": false
+  },
+  {
+    "code": "contract",
+    "name": "Contract",
+    "requires_expiration_date": false
+  },
+  {
+    "code": "certificate",
+    "name": "Certificate",
+    "requires_expiration_date": true
+  },
+  {
+    "code": "report",
+    "name": "Report",
+    "requires_expiration_date": false
+  },
+  {
+    "code": "regulation",
+    "name": "Regulation",
+    "requires_expiration_date": false
+  },
+  {
+    "code": "other",
+    "name": "Other",
+    "requires_expiration_date": false
+  }
+]

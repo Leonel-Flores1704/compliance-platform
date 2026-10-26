@@ -1,0 +1,42 @@
+[
+  {
+    "code": "manufacturing",
+    "name": "Manufacturing"
+  },
+  {
+    "code": "retail",
+    "name": "Retail"
+  },
+  {
+    "code": "services",
+    "name": "Services"
+  },
+  {
+    "code": "construction",
+    "name": "Construction"
+  },
+  {
+    "code": "healthcare",
+    "name": "Healthcare"
+  },
+  {
+    "code": "education",
+    "name": "Education"
+  },
+  {
+    "code": "technology",
+    "name": "Technology"
+  },
+  {
+    "code": "food_and_beverages",
+    "name": "Food and beverages"
+  },
+  {
+    "code": "transportation",
+    "name": "Transportation"
+  },
+  {
+    "code": "other",
+    "name": "Other"
+  }
+]
