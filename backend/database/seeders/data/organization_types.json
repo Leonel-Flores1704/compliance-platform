@@ -1,0 +1,18 @@
+[
+  {
+    "code": "private_company",
+    "name": "Private company"
+  },
+  {
+    "code": "public_institution",
+    "name": "Public institution"
+  },
+  {
+    "code": "non_profit_organization",
+    "name": "Non-profit organization"
+  },
+  {
+    "code": "cooperative",
+    "name": "Cooperative"
+  }
+]
