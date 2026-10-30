@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AiServiceClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class HealthController extends Controller
 {
-    public function __invoke(): JsonResponse
+    public function __invoke(AiServiceClient $aiService): JsonResponse
     {
         try {
             DB::connection()->getPdo();
@@ -21,10 +21,9 @@ class HealthController extends Controller
         }
 
         try {
-            $response = Http::timeout(3)
-                ->get(rtrim(config('services.ai.url'), '/').'/health');
+            $health = $aiService->health();
 
-            if (! $response->successful() || $response->json('status') !== 'ok') {
+            if (($health['status'] ?? null) !== 'ok') {
                 throw new \RuntimeException('AI service unhealthy');
             }
         } catch (\Throwable $e) {

@@ -38,7 +38,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD-SHELL", "curl -f -H \"X-Internal-Token: $${AI_SERVICE_TOKEN}\" http://localhost:8001/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
