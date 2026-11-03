@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
+import type { AxiosProgressEvent } from 'axios'
 import { api } from '../lib/api'
 import DocumentUploadPage, { MAX_FILE_SIZE } from './DocumentUploadPage'
 
@@ -21,7 +22,11 @@ vi.mock('../lib/api', () => ({
 
 describe('DocumentUploadPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   it('rejects unsupported extensions before sending with exact message', async () => {
@@ -31,7 +36,7 @@ describe('DocumentUploadPage', () => {
       </BrowserRouter>,
     )
 
-    const file = new File(['image content'], 'image.png', { type: 'image/png' })
+    const file = new File(['image content'], 'image.png', { type: 'application/pdf' })
     const input = screen.getByTestId('file-input')
 
     fireEvent.change(input, { target: { files: [file] } })
@@ -100,10 +105,10 @@ describe('DocumentUploadPage', () => {
   })
 
   it('displays upload progress during upload and prevents duplicate submissions', async () => {
-    let capturedProgressCallback: ((e: { loaded: number; total: number }) => void) | null = null
+    const capturedProgress: { current: ((e: AxiosProgressEvent) => void) | null } = { current: null }
 
     vi.mocked(api.post).mockImplementation((_url, _data, config) => {
-      capturedProgressCallback = config?.onUploadProgress as any
+      capturedProgress.current = config?.onUploadProgress ?? null
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({
@@ -125,13 +130,14 @@ describe('DocumentUploadPage', () => {
     const file = new File(['valid content'], 'doc.pdf', { type: 'application/pdf' })
     const fileInput = screen.getByTestId('file-input')
     fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
 
     const submitBtn = screen.getByRole('button', { name: /Upload document/i })
     fireEvent.click(submitBtn)
 
     // Simulate upload progress
-    if (capturedProgressCallback) {
-      capturedProgressCallback({ loaded: 50, total: 100 })
+    if (capturedProgress.current) {
+      capturedProgress.current({ loaded: 50, total: 100 } as AxiosProgressEvent)
     }
 
     await waitFor(() => {
@@ -162,6 +168,7 @@ describe('DocumentUploadPage', () => {
     })
     const fileInput = screen.getByTestId('file-input')
     fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: test.docx/)
 
     const submitBtn = screen.getByRole('button', { name: /Upload document/i })
     fireEvent.click(submitBtn)
@@ -188,6 +195,7 @@ describe('DocumentUploadPage', () => {
     const file = new File(['hello'], 'policy.txt', { type: 'text/plain' })
     const fileInput = screen.getByTestId('file-input')
     fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: policy.txt/)
 
     const submitBtn = screen.getByRole('button', { name: /Upload document/i })
     fireEvent.click(submitBtn)
@@ -234,6 +242,7 @@ describe('DocumentUploadPage', () => {
     const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
     const fileInput = screen.getByTestId('file-input')
     fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
 
     const submitBtn = screen.getByRole('button', { name: /Upload document/i })
     fireEvent.click(submitBtn)
