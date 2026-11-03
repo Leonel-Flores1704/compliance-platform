@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Path, Request, UploadFile, status
@@ -13,6 +14,8 @@ from app.extraction import (
     UnsupportedFormatError,
     extract,
 )
+from app.providers import NOT_AUTHORIZED_MESSAGE, ProviderNotAuthorizedError, validate_configured_providers
+from app.providers.llm import generate_answer
 from app.schemas import (
     AskRequest,
     AskResponse,
@@ -25,11 +28,19 @@ from app.schemas import (
 )
 from app.security import verify_internal_token
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # NFR-004 / BR-010: refuse to start with a provider that is not in authorized_providers.yaml.
+    validate_configured_providers()
+    yield
+
+
 app = FastAPI(
     title="Compliance AI Service",
     description="FastAPI service for compliance document ingestion, indexing, and RAG Q&A.",
     version="1.0.0",
     openapi_version="3.1.0",
+    lifespan=lifespan,
 )
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt"}
@@ -58,6 +69,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"error_code": "VALIDATION_ERROR", "message": message},
+    )
+
+
+@app.exception_handler(ProviderNotAuthorizedError)
+async def provider_not_authorized_handler(request: Request, exc: ProviderNotAuthorizedError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"error_code": "PROVIDER_NOT_AUTHORIZED", "message": NOT_AUTHORIZED_MESSAGE},
     )
 
 
@@ -443,8 +462,18 @@ def ask_question(
         )
     ]
 
+    # Retrieval and prompting are implemented in CMP-30/CMP-31; the call already goes
+    # through the authorized provider client (CMP-28).
+    answer = generate_answer(
+        [
+            {"role": "system", "content": "Answer only with the information in the context. This is not legal advice."},
+            {"role": "user", "content": payload.question},
+        ],
+        request_id=str(payload.request_id),
+    )
+
     return AskResponse(
-        answer="According to section 4.2 of the Compliance Manual, compliance records and audit logs must be maintained for at least 7 years.",
+        answer=answer,
         status="answered",
         citations=citations,
         disclaimer="This answer was generated automatically from indexed compliance documents for informational purposes only.",
