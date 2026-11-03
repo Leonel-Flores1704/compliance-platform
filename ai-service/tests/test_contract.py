@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.security import get_expected_token
+from tests import documents
 
 client = TestClient(app)
 TOKEN = get_expected_token()
@@ -47,7 +48,7 @@ def test_validation_error_format():
 
 
 def test_ingest_success_pdf():
-    files = {"file": ("manual.pdf", io.BytesIO(b"%PDF-1.4 mock content"), "application/pdf")}
+    files = {"file": ("manual.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
         "document_id": 10,
@@ -59,14 +60,14 @@ def test_ingest_success_pdf():
     assert r.status_code == 200
     res = r.json()
     assert res["status"] == "processed"
-    assert res["chunks"] == 42
-    assert res["pages"] == 12
+    assert res["chunks"] == 4
+    assert res["pages"] == 4
     assert res["ocr_used"] is False
 
 
 def test_ingest_success_docx_and_txt():
     # DOCX
-    files = {"file": ("policy.docx", io.BytesIO(b"mock docx"), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    files = {"file": ("policy.docx", io.BytesIO(documents.read("data_retention_disposal_procedure.docx")), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     data = {
         "organization_id": 1,
         "document_id": 11,
@@ -78,7 +79,7 @@ def test_ingest_success_docx_and_txt():
     assert r.status_code == 200
 
     # TXT
-    files = {"file": ("notes.txt", io.BytesIO(b"simple notes"), "text/plain")}
+    files = {"file": ("minuta.txt", io.BytesIO(documents.read("minuta_comite_seguridad_2026_09.txt")), "text/plain")}
     data["mime_type"] = "text/plain"
     r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
     assert r.status_code == 200
@@ -102,7 +103,7 @@ def test_ingest_unsupported_file_type():
 
 
 def test_ingest_extraction_failed():
-    files = {"file": ("damaged_doc.pdf", io.BytesIO(b"corrupt"), "application/pdf")}
+    files = {"file": ("manual.pdf", io.BytesIO(documents.read("invalid/corrupted.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
         "document_id": 10,
@@ -116,6 +117,53 @@ def test_ingest_extraction_failed():
         "error_code": "EXTRACTION_FAILED",
         "message": "The file could not be read. It may be damaged or password-protected.",
     }
+
+
+INGEST_FORM = {
+    "organization_id": 1,
+    "document_id": 10,
+    "document_version_id": 1,
+    "access_level": "confidential",
+}
+
+
+def test_ingest_password_protected_pdf_returns_extraction_failed():
+    files = {"file": ("protected.pdf", io.BytesIO(documents.read("invalid/password_protected.pdf")), "application/pdf")}
+    data = {**INGEST_FORM, "mime_type": "application/pdf"}
+    r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
+    assert r.status_code == 422
+    assert r.json() == {
+        "error_code": "EXTRACTION_FAILED",
+        "message": "The file could not be read. It may be damaged or password-protected.",
+    }
+
+
+def test_ingest_file_without_text_returns_no_text_message():
+    files = {"file": ("empty.docx", io.BytesIO(documents.empty_docx()), documents.DOCX_MIME)}
+    data = {**INGEST_FORM, "mime_type": documents.DOCX_MIME}
+    r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
+    assert r.status_code == 422
+    assert r.json() == {
+        "error_code": "EXTRACTION_FAILED",
+        "message": "No text could be extracted from this document.",
+    }
+
+
+def test_ingest_scanned_pdf_is_sent_to_ocr():
+    files = {"file": ("scan.pdf", io.BytesIO(documents.read("fire_extinguisher_inspection_scanned.pdf")), "application/pdf")}
+    data = {**INGEST_FORM, "mime_type": "application/pdf"}
+    r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
+    assert r.status_code == 200
+    assert r.json()["ocr_used"] is True
+    assert r.json()["pages"] == 2
+
+
+def test_ingest_uses_extension_when_mime_type_is_generic():
+    files = {"file": ("notes.txt", io.BytesIO("Política de Seguridad".encode("cp1252")), "text/plain")}
+    data = {**INGEST_FORM, "mime_type": "application/octet-stream"}
+    r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
+    assert r.status_code == 200
+    assert r.json()["chunks"] == 1
 
 
 def test_ingest_ocr_failed():
@@ -136,7 +184,7 @@ def test_ingest_ocr_failed():
 
 
 def test_ingest_embedding_failed():
-    files = {"file": ("embedding_failed_doc.pdf", io.BytesIO(b"content"), "application/pdf")}
+    files = {"file": ("embedding_failed_doc.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
         "document_id": 10,
@@ -153,7 +201,7 @@ def test_ingest_embedding_failed():
 
 
 def test_ingest_provider_not_authorized():
-    files = {"file": ("provider_not_authorized_doc.pdf", io.BytesIO(b"content"), "application/pdf")}
+    files = {"file": ("provider_not_authorized_doc.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
         "document_id": 10,

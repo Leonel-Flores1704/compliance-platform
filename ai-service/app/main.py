@@ -5,6 +5,14 @@ from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Path, R
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.extraction import (
+    DAMAGED_FILE_MESSAGE,
+    MIME_BY_EXTENSION,
+    ExtractionError,
+    OcrRequiredError,
+    UnsupportedFormatError,
+    extract,
+)
 from app.schemas import (
     AskRequest,
     AskResponse,
@@ -271,16 +279,8 @@ async def ingest_document(
             },
         )
 
-    # Simulation triggers by filename pattern
+    # OCR is simulated until CMP-26.
     lower_name = filename.lower()
-    if "damaged" in lower_name or "corrupt" in lower_name:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={
-                "error_code": "EXTRACTION_FAILED",
-                "message": "The file could not be read. It may be damaged or password-protected.",
-            },
-        )
     if "ocr_failed" in lower_name:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -289,6 +289,32 @@ async def ingest_document(
                 "message": "The scanned document could not be read.",
             },
         )
+
+    # Text extraction (CMP-25). Format is resolved by MIME type, falling back to the extension.
+    extraction_mime = normalized_mime if is_valid_mime else MIME_BY_EXTENSION[ext]
+    file_bytes = await file.read()
+    ocr_used = False
+    try:
+        segments = extract(file_bytes, extraction_mime)
+        pages = max((segment.page or 0 for segment in segments), default=0)
+    except ExtractionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error_code": "EXTRACTION_FAILED", "message": exc.message},
+        ) from exc
+    except UnsupportedFormatError as exc:
+        # e.g. application/msword (legacy .doc): accepted by the contract but not readable.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error_code": "EXTRACTION_FAILED", "message": DAMAGED_FILE_MESSAGE},
+        ) from exc
+    except OcrRequiredError as exc:
+        # Scanned PDF: handed to OCR, which is implemented in CMP-26.
+        segments = []
+        pages = exc.page_count
+        ocr_used = True
+
+    # Simulation triggers for later pipeline steps (chunking/embedding tasks).
     if "embedding_failed" in lower_name:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -306,11 +332,11 @@ async def ingest_document(
             },
         )
 
-    ocr_used = "scanned" in lower_name or ext == ".pdf" and "scan" in lower_name
+    # Chunking and indexing are not implemented yet; chunks reports the extracted segments.
     return IngestResponse(
         status="processed",
-        chunks=42,
-        pages=12,
+        chunks=len(segments),
+        pages=pages,
         ocr_used=ocr_used,
     )
 
