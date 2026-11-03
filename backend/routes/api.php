@@ -1,12 +1,20 @@
 <?php
 
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/catalogs/organization', [CatalogController::class, 'organization']);
+    Route::post('/organizations', [OrganizationController::class, 'store']);
+    Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])->whereNumber('organization');
+});
 
 Route::get('/health', HealthController::class);
 

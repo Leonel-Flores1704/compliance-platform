@@ -1,22 +1,56 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../lib/api'
 import HomePage from './HomePage'
 
 vi.mock('../lib/api', () => ({ api: { get: vi.fn() } }))
 
-describe('HomePage', () => {
-  it('shows the title and the API status', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: { status: 'ok' } })
+function mockApi(role: string | null) {
+  vi.mocked(api.get).mockImplementation(async (url: string) => {
+    if (url === '/api/user') {
+      if (!role) throw new Error('Unauthenticated')
+      return { data: { id: 1, name: 'User', email: 'u@example.test', role } }
+    }
+    return { data: { status: 'ok' } }
+  })
+}
 
-    render(
-      <QueryClientProvider client={new QueryClient()}>
+function renderPage() {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
         <HomePage />
-      </QueryClientProvider>,
-    )
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+describe('HomePage', () => {
+  beforeEach(() => vi.mocked(api.get).mockReset())
+
+  it('shows the title and the API status', async () => {
+    mockApi(null)
+    renderPage()
 
     expect(screen.getByText('Compliance Platform')).toBeInTheDocument()
     expect(await screen.findByText('API status: ok')).toBeInTheDocument()
+  })
+
+  it('shows the "Register organization" button to Administrators', async () => {
+    mockApi('administrator')
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'Register organization' })).toHaveAttribute('href', '/organizations/new')
+  })
+
+  it.each(['compliance_staff', 'general_employee'])('hides the "Register organization" button from %s', async (role) => {
+    mockApi(role)
+    renderPage()
+
+    await screen.findByText('API status: ok')
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/user'))
+    expect(screen.queryByRole('link', { name: 'Register organization' })).not.toBeInTheDocument()
   })
 })
