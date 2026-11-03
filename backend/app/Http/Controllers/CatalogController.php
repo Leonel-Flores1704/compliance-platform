@@ -14,4 +14,12 @@ class CatalogController extends Controller
     {
         return response()->json($catalogs->forOrganizationForm());
     }
+
+    /**
+     * GET /api/catalogs/document-categories: categories for required documents (ADR-003).
+     */
+    public function documentCategories(OrganizationCatalogs $catalogs): JsonResponse
+    {
+        return response()->json(['document_categories' => $catalogs->list('document_categories')]);
+    }
 }

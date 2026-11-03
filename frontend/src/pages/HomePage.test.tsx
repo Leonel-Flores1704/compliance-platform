@@ -54,3 +54,23 @@ describe('HomePage', () => {
     expect(screen.queryByRole('link', { name: 'Register organization' })).not.toBeInTheDocument()
   })
 })
+
+describe('HomePage requirement link', () => {
+  beforeEach(() => vi.mocked(api.get).mockReset())
+
+  it.each(['administrator', 'compliance_staff'])('shows "New compliance requirement" to %s', async (role) => {
+    mockApi(role)
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'New compliance requirement' })).toHaveAttribute('href', '/requirements/new')
+  })
+
+  it('hides "New compliance requirement" from general_employee', async () => {
+    mockApi('general_employee')
+    renderPage()
+
+    await screen.findByText('API status: ok')
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/user'))
+    expect(screen.queryByRole('link', { name: 'New compliance requirement' })).not.toBeInTheDocument()
+  })
+})

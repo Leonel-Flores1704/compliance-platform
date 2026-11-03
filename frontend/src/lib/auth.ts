@@ -27,3 +27,6 @@ export function useCurrentUser() {
 }
 
 export const isAdministrator = (user: CurrentUser | null | undefined) => user?.role === 'administrator'
+
+// ADR-005, function 3: create and edit compliance requirements.
+export const canCreateRequirements = (role?: string) => role === 'administrator' || role === 'compliance_staff'
