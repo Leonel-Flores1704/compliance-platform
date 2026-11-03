@@ -5,7 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions pdo_pgsql pgsql redis pcntl bcmath
+RUN install-php-extensions pdo_pgsql pgsql redis pcntl bcmath zip
+RUN echo "upload_max_filesize=26M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size=27M" >> /usr/local/etc/php/conf.d/uploads.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
