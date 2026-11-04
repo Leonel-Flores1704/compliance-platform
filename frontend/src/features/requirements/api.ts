@@ -44,6 +44,17 @@ export async function createRequirement(payload: ComplianceRequirementPayload): 
   return res.data.data
 }
 
+export async function updateRequirementStatus(
+  id: number,
+  status: RequirementStatus,
+): Promise<{ data: ComplianceRequirement; message: string }> {
+  await api.get('/sanctum/csrf-cookie')
+  const res = await api.patch<{ data: ComplianceRequirement; message: string }>(`/api/compliance-requirements/${id}/status`, {
+    status,
+  })
+  return res.data
+}
+
 export async function fetchRequirement(id: string): Promise<ComplianceRequirement> {
   const res = await api.get<{ data: ComplianceRequirement }>(`/api/compliance-requirements/${id}`)
   return res.data.data

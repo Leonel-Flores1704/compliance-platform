@@ -181,7 +181,7 @@ describe('RequirementCreatePage', () => {
       }),
     )
     expect(await screen.findByTestId('status-badge')).toHaveTextContent('At Risk')
-    const details = screen.getByRole('heading', { name: created.name }).parentElement!.nextElementSibling as HTMLElement
+    const details = document.querySelector('dl') as HTMLElement
     for (const value of [created.description, 'NOM-035-STPS-2018', '31/12/2026', 'Compliance Staff', 'Psychosocial risk policy']) {
       expect(within(details).getAllByText(value, { exact: false }).length).toBeGreaterThan(0)
     }

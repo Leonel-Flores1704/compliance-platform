@@ -40,6 +40,20 @@ final class RequirementMessages
 
     public const CREATED = 'Compliance requirement created successfully.';
 
+    public const STATUS_UNCHANGED = 'The requirement already has this status.';
+
+    public const NOT_FOUND = 'Compliance requirement not found.';
+
+    public const STATUS_FORBIDDEN = 'You do not have permission to change compliance status.';
+
+    /**
+     * "Status updated to Compliant." (CMP-16).
+     */
+    public static function statusUpdated(string $status): string
+    {
+        return 'Status updated to '.(self::STATUSES[$status] ?? $status).'.';
+    }
+
     /**
      * Stored value => label shown to users (BR-004).
      */

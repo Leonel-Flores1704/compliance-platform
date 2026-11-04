@@ -5,6 +5,7 @@ use App\Http\Controllers\ComplianceRequirementController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\UserOptionsController;
+use App\Support\RequirementMessages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +21,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/catalogs/document-categories', [CatalogController::class, 'documentCategories']);
     Route::get('/users/options', UserOptionsController::class);
     Route::post('/compliance-requirements', [ComplianceRequirementController::class, 'store']);
-    Route::get('/compliance-requirements/{complianceRequirement}', [ComplianceRequirementController::class, 'show'])->whereNumber('complianceRequirement');
+    Route::get('/compliance-requirements/{complianceRequirement}', [ComplianceRequirementController::class, 'show'])
+        ->whereNumber('complianceRequirement')
+        ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));
+    Route::patch('/compliance-requirements/{complianceRequirement}/status', [ComplianceRequirementController::class, 'updateStatus'])
+        ->whereNumber('complianceRequirement')
+        ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));
 });
 
 Route::get('/health', HealthController::class);

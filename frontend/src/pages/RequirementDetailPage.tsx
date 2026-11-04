@@ -5,14 +5,17 @@ import Toast from '../components/Toast'
 import { fetchRequirement } from '../features/requirements/api'
 import { isoToDisplayDate } from '../features/requirements/dates'
 import { REQUIREMENT_LABELS as L } from '../features/requirements/messages'
+import StatusChanger from '../features/requirements/StatusChanger'
+import { useCurrentUser } from '../lib/auth'
 
 export default function RequirementDetailPage() {
   const { id = '' } = useParams()
   const location = useLocation()
   const toast = (location.state as { toast?: string } | null)?.toast
+  const { data: user } = useCurrentUser()
 
   const { data: requirement, isLoading, isError } = useQuery({
-    queryKey: ['compliance-requirement', id],
+    queryKey: ['requirements', id],
     queryFn: () => fetchRequirement(id),
   })
 
@@ -27,6 +30,8 @@ export default function RequirementDetailPage() {
             <h1 className="text-2xl font-bold">{requirement.name}</h1>
             <StatusBadge code={requirement.status.code} label={requirement.status.label} />
           </div>
+          {/* ADR-005, function 4: only Compliance Staff can change the status. */}
+          {user?.role === 'compliance_staff' && <StatusChanger requirement={requirement} />}
           <dl className="mt-6 divide-y divide-gray-200 rounded-md border border-gray-200">
             {[
               [L.name, requirement.name],

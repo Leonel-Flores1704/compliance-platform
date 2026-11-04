@@ -17,7 +17,14 @@ export const REQUIREMENT_MESSAGES = {
   statusInvalid: 'Status must be one of: Compliant, Pending, At Risk, Overdue.',
   forbidden: 'You do not have permission to create compliance requirements.',
   created: 'Compliance requirement created successfully.',
+  statusUnchanged: 'The requirement already has this status.',
+  notFound: 'Compliance requirement not found.',
+  statusForbidden: 'You do not have permission to change compliance status.',
 } as const
+
+// CMP-16: "Status updated to Compliant." and "Change status from Pending to Compliant?"
+export const statusUpdatedMessage = (label: string) => `Status updated to ${label}.`
+export const statusChangeQuestion = (from: string, to: string) => `Change status from ${from} to ${to}?`
 
 export const REQUIREMENT_LABELS = {
   name: 'Name',
