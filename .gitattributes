@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Test documents must keep their exact bytes (Windows-1252, CRLF) - ADR-014 / CMP-25
+ai-service/tests/fixtures/documents/** binary
