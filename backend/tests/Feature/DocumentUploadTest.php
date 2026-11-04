@@ -54,6 +54,7 @@ beforeEach(function (): void {
         'name' => 'Compliance Policy 2026',
         'category' => 'policy',
         'access_level' => 'all_staff',
+        'version' => '1.0.0',
     ];
 });
 
@@ -127,7 +128,7 @@ it('accepts a valid PDF of exactly 26,214,400 bytes', function (): void {
                 'category' => 'policy',
                 'access_level' => 'all_staff',
                 'status' => 'queued',
-                'version_label' => 'v1',
+                'version_label' => '1.0.0',
             ],
         ]);
 
@@ -150,7 +151,7 @@ it('accepts a valid DOCX file', function (): void {
             'message' => 'Document uploaded successfully. It is now being processed.',
             'document' => [
                 'status' => 'queued',
-                'version_label' => 'v1',
+                'version_label' => '1.0.0',
             ],
         ]);
 
@@ -171,7 +172,7 @@ it('accepts a valid TXT file', function (): void {
             'message' => 'Document uploaded successfully. It is now being processed.',
             'document' => [
                 'status' => 'queued',
-                'version_label' => 'v1',
+                'version_label' => '1.0.0',
             ],
         ]);
 
@@ -418,6 +419,7 @@ it('requires expiration date for permit_license and certificate categories', fun
             'name' => 'Operating Permit',
             'category' => 'permit_license',
             'access_level' => 'compliance_only',
+            'version' => '1.0.0',
             'file' => $file,
         ]);
 
