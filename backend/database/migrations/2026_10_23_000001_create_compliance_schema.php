@@ -9,8 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
-        DB::statement('CREATE EXTENSION IF NOT EXISTS unaccent');
+        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+
+        if ($isPgsql) {
+            DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
+            DB::statement('CREATE EXTENSION IF NOT EXISTS unaccent');
+        }
 
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
@@ -23,7 +27,9 @@ return new class extends Migration
             $table->timestamps();
             $table->foreign('category')->references('code')->on('document_categories')->restrictOnDelete();
         });
-        DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_access_level_check CHECK (access_level IN ('all_staff', 'compliance_only'))");
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_access_level_check CHECK (access_level IN ('all_staff', 'compliance_only'))");
+        }
 
         Schema::create('document_versions', function (Blueprint $table) {
             $table->id();
@@ -45,8 +51,10 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->unique(['document_id', 'version_label']);
         });
-        DB::statement("ALTER TABLE document_versions ADD CONSTRAINT document_versions_status_check CHECK (status IN ('queued', 'processing', 'processed', 'processing_failed'))");
-        DB::statement('CREATE UNIQUE INDEX document_versions_one_current_per_document ON document_versions (document_id) WHERE is_current');
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE document_versions ADD CONSTRAINT document_versions_status_check CHECK (status IN ('queued', 'processing', 'processed', 'processing_failed'))");
+            DB::statement('CREATE UNIQUE INDEX document_versions_one_current_per_document ON document_versions (document_id) WHERE is_current');
+        }
 
         Schema::create('compliance_requirements', function (Blueprint $table) {
             $table->id();
@@ -63,7 +71,9 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE compliance_requirements ADD CONSTRAINT compliance_requirements_status_check CHECK (status IN ('compliant', 'pending', 'at_risk', 'overdue'))");
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE compliance_requirements ADD CONSTRAINT compliance_requirements_status_check CHECK (status IN ('compliant', 'pending', 'at_risk', 'overdue'))");
+        }
 
         Schema::create('required_documents', function (Blueprint $table) {
             $table->id();
@@ -88,7 +98,9 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent();
             $table->unique(['type', 'compliance_requirement_id', 'document_version_id', 'period_days']);
         });
-        DB::statement('ALTER TABLE alerts ADD CONSTRAINT alerts_single_target_check CHECK ((compliance_requirement_id IS NOT NULL)::integer + (document_version_id IS NOT NULL)::integer = 1)');
+        if ($isPgsql) {
+            DB::statement('ALTER TABLE alerts ADD CONSTRAINT alerts_single_target_check CHECK ((compliance_requirement_id IS NOT NULL)::integer + (document_version_id IS NOT NULL)::integer = 1)');
+        }
 
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
@@ -102,7 +114,9 @@ return new class extends Migration
             $table->jsonb('metadata');
             $table->timestamp('created_at')->useCurrent();
         });
-        DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_category_check CHECK (category IN ('functional', 'security'))");
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_category_check CHECK (category IN ('functional', 'security'))");
+        }
 
         $dimensions = (int) config('ai.embedding_dimensions', 1536);
         if ($dimensions < 1) {
@@ -122,8 +136,14 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent();
             $table->unique(['document_version_id', 'chunk_index']);
         });
-        DB::statement("ALTER TABLE document_chunks ADD COLUMN embedding vector({$dimensions}) NOT NULL");
-        DB::statement('CREATE INDEX document_chunks_embedding_hnsw_idx ON document_chunks USING hnsw (embedding vector_cosine_ops)');
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE document_chunks ADD COLUMN embedding vector({$dimensions}) NOT NULL");
+            DB::statement('CREATE INDEX document_chunks_embedding_hnsw_idx ON document_chunks USING hnsw (embedding vector_cosine_ops)');
+        } else {
+            Schema::table('document_chunks', function (Blueprint $table) {
+                $table->text('embedding')->nullable();
+            });
+        }
 
         Schema::create('ai_questions', function (Blueprint $table) {
             $table->id();
@@ -145,7 +165,9 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['ai_question_id', 'user_id']);
         });
-        DB::statement("ALTER TABLE ai_feedback ADD CONSTRAINT ai_feedback_rating_check CHECK (rating IN ('useful', 'not_useful'))");
+        if ($isPgsql) {
+            DB::statement("ALTER TABLE ai_feedback ADD CONSTRAINT ai_feedback_rating_check CHECK (rating IN ('useful', 'not_useful'))");
+        }
     }
 
     public function down(): void

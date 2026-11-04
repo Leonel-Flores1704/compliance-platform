@@ -29,7 +29,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('administrator', 'compliance_staff', 'general_employee'))");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('administrator', 'compliance_staff', 'general_employee'))");
+        }
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
