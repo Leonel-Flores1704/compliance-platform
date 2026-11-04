@@ -5,6 +5,7 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\DocumentEncryptionService;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -515,5 +516,13 @@ it('can retrieve stored file from documents disk using version storage_path', fu
     $response->assertStatus(201);
     $version = DocumentVersion::first();
     expect(Storage::disk('documents')->exists($version->storage_path))->toBeTrue();
-    expect(Storage::disk('documents')->get($version->storage_path))->toBe("Verifying storage path consistency\n");
+    expect(str_ends_with($version->storage_path, '.bin'))->toBeTrue();
+
+    // Raw stored content is encrypted binary, not raw plaintext
+    $rawCiphertext = Storage::disk('documents')->get($version->storage_path);
+    expect($rawCiphertext)->not->toBe("Verifying storage path consistency\n");
+
+    // Decrypting through DocumentEncryptionService restores original content
+    $stream = app(DocumentEncryptionService::class)->decryptAndVerify($version);
+    expect(stream_get_contents($stream))->toBe("Verifying storage path consistency\n");
 });

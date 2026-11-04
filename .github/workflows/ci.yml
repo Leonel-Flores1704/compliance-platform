@@ -54,7 +54,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo_pgsql, pgsql, bcmath
+          extensions: pdo_pgsql, pgsql, bcmath, sodium
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env

@@ -7,15 +7,18 @@ use App\Http\Requests\StoreDocumentVersionRequest;
 use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
+use App\Services\DocumentEncryptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class DocumentController extends Controller
 {
+    public function __construct(protected DocumentEncryptionService $encryptionService) {}
+
     /**
      * Store a newly uploaded document and its first version.
      */
@@ -25,9 +28,6 @@ class DocumentController extends Controller
         $file = $request->file('file');
         $validated = $request->validated();
 
-        $extension = strtolower((string) $file->getClientOriginalExtension());
-        $storedName = (string) Str::uuid().'.'.$extension;
-        $storagePath = 'documents/'.$storedName;
         $sha256 = hash_file('sha256', $file->getRealPath());
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -37,14 +37,11 @@ class DocumentController extends Controller
         }
 
         $fileStored = false;
+        $storedStoragePath = null;
 
         try {
-            $result = DB::transaction(function () use ($user, $file, $validated, $storedName, $storagePath, $sha256, $detectedMime, $request, &$fileStored) {
-                // 1. Persist file to the dedicated documents storage disk
-                Storage::disk('documents')->putFileAs('documents', $file, $storedName);
-                $fileStored = true;
-
-                // 2. Create the document record scoped to user's organization
+            $result = DB::transaction(function () use ($user, $file, $validated, $sha256, $detectedMime, $request, &$fileStored, &$storedStoragePath) {
+                // 1. Create the document record scoped to user's organization
                 $document = Document::create([
                     'organization_id' => $user->organization_id,
                     'name' => $validated['name'],
@@ -54,7 +51,16 @@ class DocumentController extends Controller
                     'created_by' => $user->id,
                 ]);
 
-                // 3. Create document version with the specified version label and status 'queued'
+                // 2. Storage path: documents/<organization_id>/<document_id>/<uuid>.bin
+                $uuid = (string) Str::uuid();
+                $storagePath = "documents/{$document->organization_id}/{$document->id}/{$uuid}.bin";
+                $storedStoragePath = $storagePath;
+
+                // 3. Encrypt file using streaming libsodium encryption
+                $this->encryptionService->encryptFile($file->getRealPath(), $storagePath);
+                $fileStored = true;
+
+                // 4. Create document version with the specified version label and status 'queued'
                 $version = DocumentVersion::create([
                     'document_id' => $document->id,
                     'version_label' => $validated['version'],
@@ -71,7 +77,7 @@ class DocumentController extends Controller
                     'queued_at' => now(),
                 ]);
 
-                // 4. Create successful upload audit log
+                // 5. Create successful upload audit log
                 AuditLog::create([
                     'user_id' => $user->id,
                     'category' => 'functional',
@@ -113,9 +119,8 @@ class DocumentController extends Controller
                 ],
             ], 201);
         } catch (Throwable $e) {
-            // If storage succeeded but database transaction failed, delete the stored file
-            if ($fileStored && Storage::disk('documents')->exists($storagePath)) {
-                Storage::disk('documents')->delete($storagePath);
+            if ($fileStored && $storedStoragePath) {
+                $this->encryptionService->delete($storedStoragePath);
             }
 
             throw $e;
@@ -131,9 +136,6 @@ class DocumentController extends Controller
         $file = $request->file('file');
         $validated = $request->validated();
 
-        $extension = strtolower((string) $file->getClientOriginalExtension());
-        $storedName = (string) Str::uuid().'.'.$extension;
-        $storagePath = 'documents/'.$storedName;
         $sha256 = hash_file('sha256', $file->getRealPath());
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -143,11 +145,16 @@ class DocumentController extends Controller
         }
 
         $fileStored = false;
+        $storedStoragePath = null;
 
         try {
-            $version = DB::transaction(function () use ($user, $file, $validated, $document, $storedName, $storagePath, $sha256, $detectedMime, $request, &$fileStored) {
-                // 1. Persist file to storage
-                Storage::disk('documents')->putFileAs('documents', $file, $storedName);
+            $version = DB::transaction(function () use ($user, $file, $validated, $document, $sha256, $detectedMime, $request, &$fileStored, &$storedStoragePath) {
+                $uuid = (string) Str::uuid();
+                $storagePath = "documents/{$document->organization_id}/{$document->id}/{$uuid}.bin";
+                $storedStoragePath = $storagePath;
+
+                // 1. Encrypt file using streaming libsodium encryption
+                $this->encryptionService->encryptFile($file->getRealPath(), $storagePath);
                 $fileStored = true;
 
                 // 2. Clear current status from existing current version
@@ -206,12 +213,82 @@ class DocumentController extends Controller
                 ],
             ], 201);
         } catch (Throwable $e) {
-            if ($fileStored && Storage::disk('documents')->exists($storagePath)) {
-                Storage::disk('documents')->delete($storagePath);
+            if ($fileStored && $storedStoragePath) {
+                $this->encryptionService->delete($storedStoragePath);
             }
 
             throw $e;
         }
+    }
+
+    /**
+     * Download an authorized document version stream after authorization and verification.
+     */
+    public function download(Request $request, mixed $id, mixed $versionId): JsonResponse|StreamedResponse
+    {
+        $document = Document::find($id);
+
+        if (! $document) {
+            return response()->json([
+                'message' => 'Document not found.',
+            ], 404);
+        }
+
+        $user = $request->user();
+
+        if ($user->cannot('download', $document)) {
+            AuditLog::create([
+                'user_id' => $user->id,
+                'category' => 'security',
+                'action' => 'document.download_denied',
+                'resource_type' => 'document',
+                'resource_id' => $document->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => [
+                    'document_id' => $document->id,
+                    'version_id' => is_numeric($versionId) ? (int) $versionId : $versionId,
+                    'access_level' => $document->access_level,
+                    'user_role' => $user->role,
+                ],
+                'created_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'You do not have permission to download this document.',
+            ], 403);
+        }
+
+        $version = $document->versions()->find($versionId);
+
+        if (! $version) {
+            return response()->json([
+                'message' => 'Document not found.',
+            ], 404);
+        }
+
+        try {
+            $stream = $this->encryptionService->decryptAndVerify($version);
+        } catch (Throwable) {
+            return response()->json([
+                'message' => 'The file could not be retrieved. Please contact your administrator.',
+            ], 500);
+        }
+
+        return response()->stream(function () use ($stream) {
+            while (! feof($stream)) {
+                $buffer = fread($stream, 65536);
+                if ($buffer !== false && $buffer !== '') {
+                    echo $buffer;
+                    flush();
+                }
+            }
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => $version->mime_type,
+            'Content-Disposition' => 'attachment; filename="'.$version->original_filename.'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /**

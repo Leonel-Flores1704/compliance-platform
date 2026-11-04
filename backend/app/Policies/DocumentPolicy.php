@@ -55,4 +55,20 @@ class DocumentPolicy
 
         return Response::allow();
     }
+
+    /**
+     * Determine whether the user can download the document.
+     */
+    public function download(User $user, Document $document): Response
+    {
+        if ($user->organization_id !== $document->organization_id) {
+            return Response::deny('You do not have permission to download this document.');
+        }
+
+        if ($user->role === 'general_employee' && $document->access_level !== 'all_staff') {
+            return Response::deny('You do not have permission to download this document.');
+        }
+
+        return Response::allow();
+    }
 }
