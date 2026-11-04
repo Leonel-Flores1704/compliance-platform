@@ -26,15 +26,9 @@ class DocumentVersionProcessor
             'failure_reason' => null,
         ])->save();
 
-        // Pass a stream, not the raw string: AiServiceClient::ingest() calls file_exists()
-        // on strings, which throws a ValueError when binary content contains null bytes.
-        $stream = fopen('php://temp', 'r+');
-        fwrite($stream, $contents);
-        rewind($stream);
-
         try {
             $this->client->ingest(
-                $stream,
+                $contents,
                 $document->organization_id,
                 $document->id,
                 $version->id,
@@ -53,10 +47,6 @@ class DocumentVersionProcessor
             ])->save();
 
             return $version;
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
         }
 
         $version->forceFill([
