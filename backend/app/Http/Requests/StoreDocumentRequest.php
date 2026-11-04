@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Document;
 use App\Services\DocumentSecurityScanner;
+use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,9 +23,19 @@ class StoreDocumentRequest extends FormRequest
         'txt' => 'text/plain',
     ];
 
-    protected const CATEGORIES_REQUIRING_EXPIRATION = ['permit_license', 'certificate'];
+    public const CATEGORY_NAMES = [
+        'permit_license' => 'Permit/License',
+        'policy' => 'Policy',
+        'contract' => 'Contract',
+        'certificate' => 'Certificate',
+        'report' => 'Report',
+        'regulation' => 'Regulation',
+        'other' => 'Other',
+    ];
 
-    protected const VALID_CATEGORIES = [
+    public const CATEGORIES_REQUIRING_EXPIRATION = ['permit_license', 'certificate'];
+
+    public const VALID_CATEGORIES = [
         'permit_license',
         'policy',
         'contract',
@@ -67,6 +78,15 @@ class StoreDocumentRequest extends FormRequest
                 ],
             ], 422));
         }
+
+        if ($this->has('visibility') && ! $this->has('access_level')) {
+            $visibility = $this->input('visibility');
+            if ($visibility === 'Compliance only' || $visibility === 'compliance_only') {
+                $this->merge(['access_level' => 'compliance_only']);
+            } else {
+                $this->merge(['access_level' => 'all_staff']);
+            }
+        }
     }
 
     /**
@@ -77,14 +97,11 @@ class StoreDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'min:3', 'max:150'],
             'category' => ['required', 'string', Rule::in(self::VALID_CATEGORIES)],
+            'version' => ['required', 'string', 'regex:/^\d+(\.\d+){0,2}$/'],
             'access_level' => ['required', 'string', Rule::in(['all_staff', 'compliance_only'])],
-            'expiration_date' => [
-                Rule::requiredIf(fn () => in_array($this->input('category'), self::CATEGORIES_REQUIRING_EXPIRATION, true)),
-                'nullable',
-                'date_format:Y-m-d',
-            ],
+            'expiration_date' => ['nullable', 'date_format:Y-m-d'],
             'file' => ['required'],
         ];
     }
@@ -176,6 +193,28 @@ class StoreDocumentRequest extends FormRequest
                     return;
                 }
             }
+
+            // Category expiration requirement check
+            if ($this->filled('category') && in_array($this->input('category'), self::CATEGORIES_REQUIRING_EXPIRATION, true)) {
+                if (! $this->filled('expiration_date')) {
+                    $cat = $this->input('category');
+                    $catName = self::CATEGORY_NAMES[$cat] ?? 'Permit/License';
+                    $validator->errors()->add('expiration_date', "Expiration date is required for {$catName} documents.");
+                }
+            }
+
+            // Future date check
+            if ($this->filled('expiration_date') && ! $validator->errors()->has('expiration_date')) {
+                try {
+                    $expDate = Carbon::createFromFormat('Y-m-d', (string) $this->input('expiration_date'))->startOfDay();
+                    $today = now()->startOfDay();
+                    if ($expDate->lessThanOrEqualTo($today)) {
+                        $validator->errors()->add('expiration_date', 'Expiration date must be a future date.');
+                    }
+                } catch (\Throwable) {
+                    $validator->errors()->add('expiration_date', 'Expiration date must be a future date.');
+                }
+            }
         });
     }
 
@@ -185,8 +224,15 @@ class StoreDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.required' => 'Document name is required.',
+            'name.min' => 'Document name must be between 3 and 150 characters.',
+            'name.max' => 'Document name must be between 3 and 150 characters.',
+            'category.required' => 'Select a category.',
+            'category.in' => 'The selected category is not valid.',
+            'version.required' => 'Version is required.',
+            'version.regex' => 'Version must use the format 1, 1.0 or 1.0.0.',
             'file.required' => 'Select a file to upload.',
-            'expiration_date.required' => 'Expiration date is required for this category.',
+            'expiration_date.date_format' => 'Expiration date must be a future date.',
         ];
     }
 

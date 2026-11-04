@@ -252,4 +252,144 @@ describe('DocumentUploadPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Upload document/i })).not.toBeInTheDocument()
   })
+
+  it('rejects empty document name with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const nameInput = screen.getByLabelText('Document Name')
+    fireEvent.change(nameInput, { target: { value: '' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(await screen.findByText('Document name is required.')).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('rejects document name outside 3-150 characters with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const nameInput = screen.getByLabelText('Document Name')
+    fireEvent.change(nameInput, { target: { value: 'ab' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(
+      await screen.findByText('Document name must be between 3 and 150 characters.'),
+    ).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('rejects empty version with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const versionInput = screen.getByTestId('version-input')
+    fireEvent.change(versionInput, { target: { value: '' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(await screen.findByText('Version is required.')).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid version format with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const versionInput = screen.getByTestId('version-input')
+    fireEvent.change(versionInput, { target: { value: 'v2' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(
+      await screen.findByText('Version must use the format 1, 1.0 or 1.0.0.'),
+    ).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('rejects permit_license without expiration date with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const categorySelect = screen.getByTestId('category-select')
+    fireEvent.change(categorySelect, { target: { value: 'permit_license' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(
+      await screen.findByText('Expiration date is required for Permit/License documents.'),
+    ).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('rejects expiration date today or in the past with exact message', async () => {
+    render(
+      <BrowserRouter>
+        <DocumentUploadPage />
+      </BrowserRouter>,
+    )
+
+    const file = new File(['valid'], 'doc.pdf', { type: 'application/pdf' })
+    const fileInput = screen.getByTestId('file-input')
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    await screen.findByText(/Selected file: doc.pdf/)
+
+    const expirationInput = screen.getByLabelText(/Expiration Date/)
+    fireEvent.change(expirationInput, { target: { value: '2020-01-01' } })
+
+    const submitBtn = screen.getByRole('button', { name: /Upload document/i })
+    fireEvent.click(submitBtn)
+
+    expect(
+      await screen.findByText('Expiration date must be a future date.'),
+    ).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
 })

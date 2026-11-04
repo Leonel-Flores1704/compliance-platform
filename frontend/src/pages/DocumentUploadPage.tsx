@@ -5,8 +5,8 @@ import axios from 'axios'
 import { api } from '../lib/api'
 
 export const MAX_FILE_SIZE = 26214400 // Exactly 25 MiB (26,214,400 bytes)
-export const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt']
-export const CATEGORIES_WITH_EXPIRATION = ['permit_license', 'certificate']
+const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt']
+const CATEGORIES_WITH_EXPIRATION = ['permit_license', 'certificate']
 
 export interface DocumentUploadPageProps {
   currentUserRole?: string
@@ -18,6 +18,7 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('policy')
+  const [version, setVersion] = useState('1.0.0')
   const [accessLevel, setAccessLevel] = useState<'all_staff' | 'compliance_only'>('all_staff')
   const [expirationDate, setExpirationDate] = useState('')
 
@@ -87,9 +88,46 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
       return
     }
 
-    if (CATEGORIES_WITH_EXPIRATION.includes(category) && !expirationDate) {
-      setErrorMessage('Expiration date is required for this category.')
+    if (!name.trim()) {
+      setErrorMessage('Document name is required.')
       return
+    }
+
+    if (name.trim().length < 3 || name.trim().length > 150) {
+      setErrorMessage('Document name must be between 3 and 150 characters.')
+      return
+    }
+
+    if (!category) {
+      setErrorMessage('Select a category.')
+      return
+    }
+
+    if (!version.trim()) {
+      setErrorMessage('Version is required.')
+      return
+    }
+
+    const versionRegex = /^\d+(\.\d+){0,2}$/
+    if (!versionRegex.test(version.trim())) {
+      setErrorMessage('Version must use the format 1, 1.0 or 1.0.0.')
+      return
+    }
+
+    if (CATEGORIES_WITH_EXPIRATION.includes(category) && !expirationDate) {
+      const catDisplayName = category === 'permit_license' ? 'Permit/License' : 'Certificate'
+      setErrorMessage(`Expiration date is required for ${catDisplayName} documents.`)
+      return
+    }
+
+    if (expirationDate) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const selectedDate = new Date(expirationDate + 'T00:00:00')
+      if (selectedDate <= today) {
+        setErrorMessage('Expiration date must be a future date.')
+        return
+      }
     }
 
     setErrorMessage(null)
@@ -98,8 +136,9 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('name', name)
+    formData.append('name', name.trim())
     formData.append('category', category)
+    formData.append('version', version.trim())
     formData.append('access_level', accessLevel)
     if (expirationDate) {
       formData.append('expiration_date', expirationDate)
@@ -182,7 +221,7 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
       )}
 
       {!isForbidden && (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form noValidate onSubmit={handleSubmit} className="space-y-6">
           {/* Dropzone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,6 +281,7 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
             </label>
             <select
               id="doc-category"
+              data-testid="category-select"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -257,20 +297,39 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
             </select>
           </div>
 
-          {/* Access Level */}
+          {/* Version */}
+          <div>
+            <label htmlFor="doc-version" className="block text-sm font-medium text-gray-700 mb-1">
+              Version
+            </label>
+            <input
+              id="doc-version"
+              data-testid="version-input"
+              type="text"
+              required
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+              placeholder="e.g. 1, 1.0 or 1.0.0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              disabled={isUploading}
+            />
+          </div>
+
+          {/* Visibility */}
           <div>
             <label htmlFor="doc-access" className="block text-sm font-medium text-gray-700 mb-1">
-              Access Level
+              Visibility
             </label>
             <select
               id="doc-access"
+              data-testid="visibility-select"
               value={accessLevel}
               onChange={(e) => setAccessLevel(e.target.value as 'all_staff' | 'compliance_only')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               disabled={isUploading}
             >
-              <option value="all_staff">All Staff (Visible to all organization members)</option>
-              <option value="compliance_only">Compliance Only (Restricted to compliance team)</option>
+              <option value="all_staff">All staff</option>
+              <option value="compliance_only">Compliance only</option>
             </select>
           </div>
 
