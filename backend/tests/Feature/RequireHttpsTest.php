@@ -7,10 +7,7 @@ beforeEach(function () {
 it('rejects plain HTTP POST requests in production with 426 and exact message', function () {
     config(['app.require_https' => true]);
 
-    $response = $this->postJson('http://localhost/api/auth/login', [
-        'email' => 'user@compliance-platform.online',
-        'password' => 'secret',
-    ]);
+    $response = $this->postJson('http://localhost/api/documents');
 
     $response->assertStatus(426)
         ->assertExactJson([
@@ -46,15 +43,9 @@ it('redirects plain HTTP GET requests in production with 301 to https', function
 it('allows non-GET requests when HTTPS is used in production', function () {
     config(['app.require_https' => true]);
 
-    $response = $this->postJson('https://localhost/api/auth/login', [
-        'email' => 'user@compliance-platform.online',
-        'password' => 'secret',
-    ]);
+    $response = $this->postJson('https://localhost/api/documents');
 
-    $response->assertStatus(200)
-        ->assertJson([
-            'message' => 'Authenticated successfully.',
-        ]);
+    $response->assertUnauthorized();
 });
 
 it('recognizes X-Forwarded-Proto https from trusted reverse proxy as secure', function () {
@@ -63,9 +54,9 @@ it('recognizes X-Forwarded-Proto https from trusted reverse proxy as secure', fu
     $response = $this->withHeaders([
         'X-Forwarded-Proto' => 'https',
         'X-Forwarded-Port' => '443',
-    ])->postJson('http://localhost/api/auth/login');
+    ])->postJson('http://localhost/api/documents');
 
-    $response->assertStatus(200);
+    $response->assertUnauthorized();
 });
 
 it('rejects X-Forwarded-Proto http from reverse proxy with 426 on non-GET', function () {
@@ -74,7 +65,7 @@ it('rejects X-Forwarded-Proto http from reverse proxy with 426 on non-GET', func
     $response = $this->withHeaders([
         'X-Forwarded-Proto' => 'http',
         'X-Forwarded-Port' => '80',
-    ])->postJson('http://localhost/api/auth/login');
+    ])->postJson('http://localhost/api/documents');
 
     $response->assertStatus(426)
         ->assertExactJson([
@@ -85,7 +76,7 @@ it('rejects X-Forwarded-Proto http from reverse proxy with 426 on non-GET', func
 it('allows plain HTTP requests in non-production local environments', function () {
     config(['app.require_https' => false]);
 
-    $response = $this->postJson('http://localhost/api/auth/login');
+    $response = $this->postJson('http://localhost/api/documents');
 
-    $response->assertStatus(200);
+    $response->assertUnauthorized();
 });
