@@ -1,0 +1,16 @@
+DIRECTORIO DE EMERGENCIAS
+=========================
+Planta Apodaca - Manufacturas Alfa Demo (todos los números son ficticios)
+
+INTERNOS
+--------
+Emergencias internas: extensión 5555
+Vigilancia: extensión 1001
+Seguridad, Salud y Medio Ambiente: extensión 3030
+
+EXTERNOS
+--------
+Bomberos (ficticio): 81-0000-1111
+Cruz Roja (ficticio): 81-0000-2222
+Protección Civil municipal (ficticio): 81-0000-3333
+Hospital más cercano: Hospital Demo Norte, a 4 km de la planta.

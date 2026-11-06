@@ -278,7 +278,8 @@ it('maps 503 PROVIDER_NOT_AUTHORIZED to AiServiceProviderNotAuthorizedException'
         ->toThrow(function (AiServiceProviderNotAuthorizedException $e) {
             expect($e->getMessage())->toBe('The AI provider is not authorized.')
                 ->and($e->getErrorCode())->toBe('PROVIDER_NOT_AUTHORIZED')
-                ->and($e->getStatusCode())->toBe(503);
+                ->and($e->getStatusCode())->toBe(503)
+                ->and($e->userMessage())->toBe('The AI assistant is not available right now. Please try again later.');
         });
 });
 

@@ -1,0 +1,16 @@
+# RAG parameters. Source of truth: docs/decisions/ADR-013-rag-thresholds.md
+chunking:
+  chunk_size_tokens: 500
+  overlap_tokens: 75
+  min_chunk_tokens: 30
+  tokenizer: o200k_base
+retrieval:
+  candidates: 8
+  max_fragments_to_llm: 4
+  similarity_threshold: 0.55   # initial value; recalibrate in CMP-36 (ADR-013 section 2)
+  hnsw_ef_search: 40
+generation:
+  temperature: 0.1
+  max_output_tokens: 600
+  timeout_seconds: 10
+  fallback_on: [429, 500, 502, 503, 504]

@@ -32,6 +32,12 @@ services:
     build: ./ai-service
     environment:
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
+      APP_ENV: ${AI_APP_ENV:-local}
+      # Must be providers listed in ai-service/config/authorized_providers.yaml (ADR-011, CMP-28).
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-120b}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local-embeddings}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
     expose:
       - "8001"
     depends_on:
