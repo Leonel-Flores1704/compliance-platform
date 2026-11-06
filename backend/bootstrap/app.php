@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Middleware\RequireHttps;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,5 +20,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(RequireHttps::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (AuthenticationException $exception, $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+        });
+
+        $exceptions->render(function (TooManyRequestsHttpException $exception, $request) {
+            if ($request->is('api/auth/login')) {
+                $seconds = (int) ($exception->getHeaders()['Retry-After'] ?? 60);
+
+                return response()->json([
+                    'message' => "Too many sign-in attempts. Try again in {$seconds} seconds.",
+                ], 429, $exception->getHeaders());
+            }
+        });
     })->create();
