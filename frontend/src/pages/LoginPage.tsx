@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -34,8 +35,9 @@ export default function LoginPage() {
         ? '/assistant'
         : '/dashboard'
       navigate(redirect?.startsWith('/') ? redirect : defaultPath, { replace: true })
-    } catch (error: any) {
-      setServerError(error.response?.data?.message ?? 'The email or password is incorrect.')
+    } catch (error) {
+      const message = axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message : undefined
+      setServerError(message ?? 'The email or password is incorrect.')
     }
   }
 

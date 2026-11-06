@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,4 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+
+    Route::post('/assistant/questions', [AssistantController::class, 'ask'])->middleware('throttle:assistant-questions');
+    Route::get('/assistant/questions', [AssistantController::class, 'index']);
 });

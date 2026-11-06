@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import AssistantPage from './pages/AssistantPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
 import HomePage from './pages/HomePage'
@@ -12,7 +13,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<HomePage />} />
-        <Route path="/assistant" element={<HomePage />} />
+        <Route path="/assistant" element={<AssistantPage />} />
         <Route path="/documents/new" element={<DocumentUploadPage />} />
         <Route path="/documents/:id" element={<DocumentDetailPage />} />
       </Route>
