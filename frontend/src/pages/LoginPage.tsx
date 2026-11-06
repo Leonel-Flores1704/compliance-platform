@@ -34,8 +34,9 @@ export default function LoginPage() {
         ? '/assistant'
         : '/dashboard'
       navigate(redirect?.startsWith('/') ? redirect : defaultPath, { replace: true })
-    } catch (error: any) {
-      setServerError(error.response?.data?.message ?? 'The email or password is incorrect.')
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } }
+      setServerError(err.response?.data?.message ?? 'The email or password is incorrect.')
     }
   }
 
