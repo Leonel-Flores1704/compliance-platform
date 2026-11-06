@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -120,11 +121,16 @@ it('returns the exact unauthenticated message for protected endpoints', function
 });
 
 it('keeps health public and rate limits login attempts with the exact message', function (): void {
+    Http::fake([
+        '*' => Http::response(['status' => 'ok'], 200)
+    ]);
+
     $this->getJson('/api/health')->assertOk();
 
     // Use an isolated client identity so attempts made by preceding feature
     // tests cannot consume this test's ten-request throttle allowance.
     $ipAddress = '203.0.113.'.random_int(1, 254);
+    
     $this->withHeaders([
         'X-Forwarded-For' => $ipAddress,
         'X-Forwarded-Proto' => 'http',
