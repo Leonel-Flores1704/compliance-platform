@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::post('/documents/{document}/versions', [DocumentController::class, 'storeVersion']);
+    Route::get('/documents/{id}/versions/{versionId}/download', [DocumentController::class, 'download']);
 });
 
 Route::get('/health', HealthController::class);
