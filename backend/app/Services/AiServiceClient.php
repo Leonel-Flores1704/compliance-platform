@@ -64,7 +64,12 @@ class AiServiceClient
             $filename = $filename ?? 'document.pdf';
         } else {
             // Raw binary/string content or file path
-            if (@file_exists($file) && is_file($file)) {
+            $isPath = is_string($file)
+                && ! str_contains($file, "\0")
+                && @file_exists($file)
+                && is_file($file);
+
+            if ($isPath) {
                 $contents = fopen($file, 'r');
                 $filename = $filename ?? basename($file);
             } else {

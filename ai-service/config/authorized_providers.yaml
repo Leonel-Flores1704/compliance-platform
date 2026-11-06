@@ -1,0 +1,18 @@
+# Changes to this file require a new or updated ADR approved by the team.
+providers:
+  - name: groq
+    hosts: [api.groq.com]
+    purposes: [llm]
+    requires:
+      zero_data_retention: true
+  - name: local-embeddings
+    hosts: []            # in-process, no network
+    purposes: [embeddings]
+  - name: ollama
+    hosts: [ollama]      # internal Docker network only
+    purposes: [llm]
+    enabled_by_default: false
+  - name: mock
+    hosts: []
+    purposes: [llm, embeddings]
+    allowed_envs: [testing, loadtest]
