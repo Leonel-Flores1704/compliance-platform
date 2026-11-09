@@ -28,4 +28,3 @@ class AuditLogException extends Exception
         return response('The action could not be completed. Please try again.', 500);
     }
 }
-

@@ -40,11 +40,11 @@ class AppServiceProvider extends ServiceProvider
         DocumentVersion::observe(DocumentVersionObserver::class);
         RequiredDocument::observe(RequiredDocumentObserver::class);
 
-        \App\Models\ComplianceRequirement::observe(\App\Observers\ComplianceRequirementObserver::class);
-        \App\Models\Organization::observe(\App\Observers\OrganizationObserver::class);
-        \App\Models\Document::observe(\App\Observers\DocumentObserver::class);
-        \App\Models\DocumentVersion::observe(\App\Observers\DocumentVersionObserver::class);
-        \App\Models\RequiredDocument::observe(\App\Observers\RequiredDocumentObserver::class);
+        ComplianceRequirement::observe(ComplianceRequirementObserver::class);
+        Organization::observe(OrganizationObserver::class);
+        Document::observe(DocumentObserver::class);
+        DocumentVersion::observe(DocumentVersionObserver::class);
+        RequiredDocument::observe(RequiredDocumentObserver::class);
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

@@ -144,4 +144,3 @@ class RequirementController extends Controller
         ]);
     }
 }
-

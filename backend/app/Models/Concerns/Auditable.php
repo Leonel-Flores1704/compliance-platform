@@ -22,4 +22,3 @@ trait Auditable
         return DB::transaction(fn () => parent::delete());
     }
 }
-
