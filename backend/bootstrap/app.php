@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\AuditLogException;
 use App\Http\Middleware\RequireHttps;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(RequireHttps::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(function (AuditLogException $exception, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'The action could not be completed. Please try again.',
+                ], 500);
+            }
+
+            return response('The action could not be completed. Please try again.', 500);
+        });
+
         $exceptions->render(function (AuthenticationException $exception, $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);

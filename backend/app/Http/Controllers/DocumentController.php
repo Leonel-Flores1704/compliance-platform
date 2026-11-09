@@ -40,7 +40,7 @@ class DocumentController extends Controller
         $storedStoragePath = null;
 
         try {
-            $result = DB::transaction(function () use ($user, $file, $validated, $sha256, $detectedMime, $request, &$fileStored, &$storedStoragePath) {
+            $result = DB::transaction(function () use ($user, $file, $validated, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
                 // 1. Create the document record scoped to user's organization
                 $document = Document::create([
                     'organization_id' => $user->organization_id,
@@ -75,28 +75,6 @@ class DocumentController extends Controller
                     'uploaded_by' => $user->id,
                     'uploaded_at' => now(),
                     'queued_at' => now(),
-                ]);
-
-                // 5. Create successful upload audit log
-                AuditLog::create([
-                    'user_id' => $user->id,
-                    'category' => 'functional',
-                    'action' => 'document.uploaded',
-                    'resource_type' => 'document',
-                    'resource_id' => $document->id,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'metadata' => [
-                        'document_id' => $document->id,
-                        'version_id' => $version->id,
-                        'version_label' => $version->version_label,
-                        'original_filename' => $file->getClientOriginalName(),
-                        'size_bytes' => $file->getSize(),
-                        'sha256' => $sha256,
-                        'category' => $document->category,
-                        'access_level' => $document->access_level,
-                    ],
-                    'created_at' => now(),
                 ]);
 
                 return [$document, $version];
@@ -148,7 +126,7 @@ class DocumentController extends Controller
         $storedStoragePath = null;
 
         try {
-            $version = DB::transaction(function () use ($user, $file, $validated, $document, $sha256, $detectedMime, $request, &$fileStored, &$storedStoragePath) {
+            $version = DB::transaction(function () use ($user, $file, $validated, $document, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
                 $uuid = (string) Str::uuid();
                 $storagePath = "documents/{$document->organization_id}/{$document->id}/{$uuid}.bin";
                 $storedStoragePath = $storagePath;
@@ -177,26 +155,6 @@ class DocumentController extends Controller
                     'uploaded_by' => $user->id,
                     'uploaded_at' => now(),
                     'queued_at' => now(),
-                ]);
-
-                // 4. Audit log entry
-                AuditLog::create([
-                    'user_id' => $user->id,
-                    'category' => 'functional',
-                    'action' => 'document_version.uploaded',
-                    'resource_type' => 'document',
-                    'resource_id' => $document->id,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'metadata' => [
-                        'document_id' => $document->id,
-                        'version_id' => $newVersion->id,
-                        'version_label' => $newVersion->version_label,
-                        'original_filename' => $file->getClientOriginalName(),
-                        'size_bytes' => $file->getSize(),
-                        'sha256' => $sha256,
-                    ],
-                    'created_at' => now(),
                 ]);
 
                 return $newVersion;
