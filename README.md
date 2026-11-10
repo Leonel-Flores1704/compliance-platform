@@ -7,7 +7,8 @@ Monorepo: React frontend, Laravel API, FastAPI AI service and PostgreSQL (pgvect
 - Docker Desktop with Docker Compose v2 or newer (tested with Docker 29 and Compose v5)
 - Git
 - Free ports: 5173, 8000, 5432 and 6379
-- About 4 GB of RAM assigned to Docker
+- About 8 GB of RAM assigned to Docker (the ai-service runs the bge-m3 embedding model and needs at least 4 GB by itself, ADR-010)
+- About 6 GB of free disk for the ai-service image (CPU PyTorch + bge-m3 weights)
 
 ## Setup
 
@@ -25,7 +26,7 @@ docker compose ps
 docker compose exec backend php artisan migrate
 ```
 
-The first build downloads images and can take several minutes. Once the images are built, all 6 containers should report `healthy` in about 2 minutes. On the first start the backend installs its Composer dependencies and generates its `.env` and `APP_KEY` by itself.
+The first build downloads images and can take several minutes; the ai-service build also downloads PyTorch (CPU) and the bge-m3 model (about 2.3 GB) once, so expect 10-20 minutes. At runtime the ai-service never downloads models (`HF_HUB_OFFLINE=1`). Once the images are built, all 6 containers should report `healthy` in about 2 minutes. On the first start the backend installs its Composer dependencies and generates its `.env` and `APP_KEY` by itself.
 
 ## Verify
 
@@ -84,5 +85,6 @@ docker compose exec frontend npm run build
 
 ## Troubleshooting
 
+- **`expected 1536 dimensions, not 1024` when indexing documents:** the database was migrated before CMP-29 changed the embedding dimension to 1024 (bge-m3, ADR-010). Recreate the schema with `docker compose exec backend php artisan migrate:fresh --seed` (this deletes local data).
 - **Database password error after changing `DB_PASSWORD`:** PostgreSQL only reads the password when its volume is created. Recreate it with `docker compose down -v` (this deletes the local database).
 - **Windows line endings:** the repo enforces LF. Keep `entrypoint.sh` in LF or the backend will not start.

@@ -14,6 +14,8 @@ import respx
 import yaml
 from fastapi.testclient import TestClient
 
+from app.indexing import embeddings as embeddings_module
+from app.indexing.embeddings import MockEmbeddingProvider
 from app.main import app
 from app.providers import (
     LLM,
@@ -53,6 +55,7 @@ def read_security_log(path: Path) -> list[dict]:
 def use_groq(monkeypatch, base_url: str | None = None) -> None:
     monkeypatch.setenv("APP_ENV", "local")
     monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "local-embeddings")
     monkeypatch.setenv("GROQ_API_KEY", "test-key")
     if base_url:
         monkeypatch.setenv("LLM_BASE_URL", base_url)
@@ -141,8 +144,11 @@ def test_ollama_is_blocked_unless_selected(monkeypatch):
 # --- Authorized calls -------------------------------------------------------------
 
 
-def test_ingest_and_ask_with_authorized_provider_only_reach_allowed_hosts(monkeypatch, provider_env):
+def test_ingest_and_ask_with_authorized_provider_only_reach_allowed_hosts(monkeypatch, provider_env, database):
     use_groq(monkeypatch)
+    database.create_version()
+    # bge-m3 runs in-process (no HTTP); the mock keeps the test light while the LLM goes to Groq.
+    monkeypatch.setattr(embeddings_module, "get_embedding_provider", MockEmbeddingProvider)
     completion = {"choices": [{"message": {"content": "Records are kept for 7 years."}}]}
 
     with respx.mock(assert_all_mocked=True) as router:

@@ -4,6 +4,10 @@ chunking:
   overlap_tokens: 75
   min_chunk_tokens: 30
   tokenizer: o200k_base
+embedding:                     # CMP-29
+  batch_size: 64
+  max_retries: 3               # retries after the first attempt, exponential backoff
+  backoff_seconds: 1.0         # 1 s, 2 s, 4 s
 retrieval:
   candidates: 8
   max_fragments_to_llm: 4

@@ -35,6 +35,9 @@ class DocumentVersion extends Model
 
     public const MESSAGE_NO_TEXT = 'No text could be extracted from this document.';
 
+    /** Shown in the document detail when FastAPI returns 502 EMBEDDING_FAILED (CMP-29). */
+    public const MESSAGE_INDEXING_FAILED = 'The document text could not be indexed for the AI assistant.';
+
     protected $guarded = [];
 
     /**
@@ -54,7 +57,7 @@ class DocumentVersion extends Model
 
     protected function casts(): array
     {
-        return ['expiration_date' => 'date', 'is_current' => 'boolean', 'uploaded_at' => 'datetime', 'queued_at' => 'datetime', 'processing_started_at' => 'datetime', 'processed_at' => 'datetime'];
+        return ['expiration_date' => 'date', 'is_current' => 'boolean', 'uploaded_at' => 'datetime', 'queued_at' => 'datetime', 'processing_started_at' => 'datetime', 'processed_at' => 'datetime', 'chunk_count' => 'integer', 'page_count' => 'integer'];
     }
 
     public function document(): BelongsTo

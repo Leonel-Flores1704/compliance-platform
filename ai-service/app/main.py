@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Path, Request, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -14,6 +15,11 @@ from app.extraction import (
     UnsupportedFormatError,
     extract,
 )
+from app import db
+from app.indexing import store as chunk_store
+from app.indexing.embeddings import INDEXING_FAILED_MESSAGE, EmbeddingError
+from app.indexing.pipeline import index_version
+from app.indexing.store import VersionNotIndexableError
 from app.providers import NOT_AUTHORIZED_MESSAGE, ProviderNotAuthorizedError, validate_configured_providers
 from app.providers.llm import generate_answer
 from app.schemas import (
@@ -333,15 +339,6 @@ async def ingest_document(
         pages = exc.page_count
         ocr_used = True
 
-    # Simulation triggers for later pipeline steps (chunking/embedding tasks).
-    if "embedding_failed" in lower_name:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "error_code": "EMBEDDING_FAILED",
-                "message": "The document could not be indexed.",
-            },
-        )
     if "provider_not_authorized" in lower_name:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -351,10 +348,32 @@ async def ingest_document(
             },
         )
 
-    # Chunking and indexing are not implemented yet; chunks reports the extracted segments.
+    # Chunking, embedding and storage (CMP-29). Scanned PDFs have no segments until OCR (CMP-26).
+    chunks = 0
+    if segments:
+        try:
+            result = await run_in_threadpool(
+                index_version,
+                segments,
+                organization_id=organization_id,
+                document_id=document_id,
+                version_id=document_version_id,
+            )
+            chunks = result.chunks
+        except EmbeddingError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={"error_code": "EMBEDDING_FAILED", "message": INDEXING_FAILED_MESSAGE},
+            ) from exc
+        except VersionNotIndexableError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error_code": "VALIDATION_ERROR", "message": str(exc)},
+            ) from exc
+
     return IngestResponse(
         status="processed",
-        chunks=len(segments),
+        chunks=chunks,
         pages=pages,
         ocr_used=ocr_used,
     )
@@ -382,6 +401,14 @@ def set_current_version(
     document_id: Annotated[int, Path(..., description="Document ID")],
     payload: SetCurrentRequest,
 ) -> SetCurrentResponse:
+    try:
+        with db.connect() as conn:
+            chunk_store.set_current_version(conn, document_id, payload.document_version_id)
+    except VersionNotIndexableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error_code": "VALIDATION_ERROR", "message": str(exc)},
+        ) from exc
     return SetCurrentResponse(status="ok")
 
 

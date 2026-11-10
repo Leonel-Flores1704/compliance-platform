@@ -119,3 +119,58 @@ it('marks the version as processed and sends its metadata when extraction succee
             && str_contains($body, 'all_staff');
     });
 });
+
+// --- CMP-29: indexing result and embedding failures -----------------------------------
+
+it('marks the version as Processing Failed with the indexing message when embeddings fail', function (): void {
+    fakeIngestResponse([
+        'error_code' => 'EMBEDDING_FAILED',
+        'message' => 'The document could not be indexed.',
+    ], 502);
+
+    $version = app(DocumentVersionProcessor::class)->process($this->version, 'contents');
+
+    $version->refresh();
+    expect($version->status)->toBe('processing_failed')
+        ->and($version->statusLabel())->toBe('Processing Failed')
+        ->and($version->failure_reason)->toBe('The document text could not be indexed for the AI assistant.')
+        ->and($version->chunk_count)->toBe(0)
+        ->and(DB::table('document_chunks')->where('document_version_id', $version->id)->count())->toBe(0);
+
+    $failedVersionsWithChunks = DB::table('document_chunks as c')
+        ->join('document_versions as v', 'v.id', '=', 'c.document_version_id')
+        ->where('v.status', 'processing_failed')
+        ->count();
+    expect($failedVersionsWithChunks)->toBe(0);
+});
+
+it('stores the number of chunks and pages returned by the AI service', function (): void {
+    fakeIngestResponse(['status' => 'processed', 'chunks' => 7, 'pages' => 4, 'ocr_used' => false], 200);
+
+    $version = app(DocumentVersionProcessor::class)->process($this->version, 'contents');
+
+    expect($version->refresh()->status)->toBe('processed')
+        ->and($version->chunk_count)->toBe(7)
+        ->and($version->page_count)->toBe(4);
+});
+
+it('activates the chunks of the current version through set-current', function (): void {
+    $this->version->forceFill(['is_current' => true])->save();
+    Http::fake([
+        'http://ai-service:8001/v1/documents/ingest' => Http::response(['status' => 'processed', 'chunks' => 3, 'pages' => 2, 'ocr_used' => false], 200),
+        'http://ai-service:8001/v1/documents/*/set-current' => Http::response(['status' => 'ok'], 200),
+    ]);
+
+    app(DocumentVersionProcessor::class)->process($this->version, 'contents');
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === "http://ai-service:8001/v1/documents/{$this->version->document_id}/set-current"
+        && $request['document_version_id'] === $this->version->id);
+});
+
+it('does not activate chunks of a version that is not current', function (): void {
+    fakeIngestResponse(['status' => 'processed', 'chunks' => 3, 'pages' => 2, 'ocr_used' => false], 200);
+
+    app(DocumentVersionProcessor::class)->process($this->version, 'contents');
+
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'set-current'));
+});
