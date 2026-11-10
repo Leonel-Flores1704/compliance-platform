@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApplicabilityCriteriaController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\ComplianceRequirementController;
 use App\Http\Controllers\HealthController;
@@ -20,7 +21,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/catalogs/document-categories', [CatalogController::class, 'documentCategories']);
     Route::get('/users/options', UserOptionsController::class);
+    Route::get('/compliance-requirements', [ComplianceRequirementController::class, 'index']);
     Route::post('/compliance-requirements', [ComplianceRequirementController::class, 'store']);
+    Route::post('/compliance-requirements/criteria/preview', [ApplicabilityCriteriaController::class, 'preview']);
+    Route::put('/compliance-requirements/{complianceRequirement}/criteria', [ApplicabilityCriteriaController::class, 'update'])
+        ->whereNumber('complianceRequirement')
+        ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));
     Route::get('/compliance-requirements/{complianceRequirement}', [ComplianceRequirementController::class, 'show'])
         ->whereNumber('complianceRequirement')
         ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));

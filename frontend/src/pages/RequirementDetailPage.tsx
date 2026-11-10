@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import StatusBadge from '../components/StatusBadge'
 import Toast from '../components/Toast'
 import { fetchRequirement } from '../features/requirements/api'
 import { isoToDisplayDate } from '../features/requirements/dates'
 import { REQUIREMENT_LABELS as L } from '../features/requirements/messages'
 import StatusChanger from '../features/requirements/StatusChanger'
-import { useCurrentUser } from '../lib/auth'
+import { canCreateRequirements, useCurrentUser } from '../lib/auth'
 
 export default function RequirementDetailPage() {
   const { id = '' } = useParams()
@@ -32,6 +32,11 @@ export default function RequirementDetailPage() {
           </div>
           {/* ADR-005, function 4: only Compliance Staff can change the status. */}
           {user?.role === 'compliance_staff' && <StatusChanger requirement={requirement} />}
+          {canCreateRequirements(user?.role) && (
+            <Link to={`/requirements/${requirement.id}/criteria`} className="mt-4 inline-block text-sm text-blue-700 hover:underline">
+              Applicability criteria
+            </Link>
+          )}
           <dl className="mt-6 divide-y divide-gray-200 rounded-md border border-gray-200">
             {[
               [L.name, requirement.name],

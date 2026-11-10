@@ -1,4 +1,5 @@
 import { api } from '../../lib/api'
+import type { CriteriaGroup } from '../criteria/model'
 import type { CatalogOption } from '../organizations/api'
 import type { RequirementStatus } from './messages'
 
@@ -14,6 +15,7 @@ export type ComplianceRequirement = {
   responsible_user: UserOption | null
   required_documents: { id: number; name: string; category: CatalogOption }[]
   applies: boolean
+  applicability_criteria?: CriteriaGroup
   created_at: string | null
 }
 

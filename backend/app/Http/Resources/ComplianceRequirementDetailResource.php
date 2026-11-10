@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\ComplianceRequirement;
+use App\Services\Compliance\CriteriaValidator;
 use App\Support\RequirementMessages;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -45,6 +46,8 @@ class ComplianceRequirementDetailResource extends JsonResource
                 ])
                 ->all(),
             'applies' => $this->applies,
+            // jsonb does not keep key order; normalize() returns field, op, value as in ADR-021.
+            'applicability_criteria' => CriteriaValidator::normalize($this->applicability_criteria),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

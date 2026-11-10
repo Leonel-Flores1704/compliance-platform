@@ -39,6 +39,11 @@ export default function HomePage() {
           Register organization
         </Link>
       )}
+      {user && (
+        <Link to="/requirements" className="text-sm font-semibold text-blue-700 hover:underline">
+          Compliance requirements
+        </Link>
+      )}
       {canCreateRequirements(user?.role) && (
         <Link
           to="/requirements/new"

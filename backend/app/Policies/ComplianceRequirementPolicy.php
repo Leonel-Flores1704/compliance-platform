@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\ComplianceRequirement;
 use App\Models\User;
+use App\Support\CriteriaMessages;
 use App\Support\RequirementMessages;
 use Illuminate\Auth\Access\Response;
 
@@ -32,6 +33,31 @@ class ComplianceRequirementPolicy
         return $user->role === 'compliance_staff'
             ? Response::allow()
             : Response::deny(RequirementMessages::STATUS_FORBIDDEN);
+    }
+
+    /**
+     * ADR-005, function 3: Administrators and Compliance Staff edit applicability criteria.
+     */
+    public function updateCriteria(User $user, ComplianceRequirement $requirement): Response
+    {
+        if ($user->organization_id !== $requirement->organization_id) {
+            return Response::denyAsNotFound(RequirementMessages::NOT_FOUND);
+        }
+
+        return $this->editsCriteria($user) ? Response::allow() : Response::deny(CriteriaMessages::FORBIDDEN);
+    }
+
+    /**
+     * Live preview of the criteria builder.
+     */
+    public function previewCriteria(User $user): Response
+    {
+        return $this->editsCriteria($user) ? Response::allow() : Response::deny(CriteriaMessages::FORBIDDEN);
+    }
+
+    private function editsCriteria(User $user): bool
+    {
+        return in_array($user->role, ['administrator', 'compliance_staff'], true);
     }
 
     /**

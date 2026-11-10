@@ -13,7 +13,8 @@ class DemoSeeder extends Seeder
     {
         $organization = Organization::query()->firstOrCreate(
             ['legal_name' => 'Compliance Platform Demo, S.A. de C.V.'],
-            ['organization_type' => 'private_company', 'industry' => 'technology', 'state' => '09', 'municipality' => 'Cuauhtemoc', 'employees_count' => 25, 'business_activities' => ['51'], 'is_active' => true]
+            // CMP-17 acceptance criteria use this demo organization: Manufacturing, 120 employees.
+            ['organization_type' => 'private_company', 'industry' => 'manufacturing', 'state' => '10', 'municipality' => 'Durango', 'employees_count' => 120, 'business_activities' => ['31-33', '43'], 'is_active' => true]
         );
 
         $password = (string) env('DEMO_USER_PASSWORD', 'password');

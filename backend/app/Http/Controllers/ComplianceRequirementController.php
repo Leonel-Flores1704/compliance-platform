@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreComplianceRequirementRequest;
 use App\Http\Requests\UpdateRequirementStatusRequest;
 use App\Http\Resources\ComplianceRequirementDetailResource;
+use App\Http\Resources\ComplianceRequirementListResource;
 use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Support\RequirementMessages;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -100,6 +103,22 @@ class ComplianceRequirementController extends Controller
         return (new ComplianceRequirementDetailResource($requirement->load(['responsibleUser', 'requiredDocuments'])))
             ->additional(['message' => RequirementMessages::statusUpdated($to)])
             ->response();
+    }
+
+    /**
+     * GET /api/compliance-requirements: requirements of the user's organization that apply to it.
+     * Requirements with applies = false stay stored but are hidden unless include_not_applicable=1 (ADR-021).
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $requirements = ComplianceRequirement::query()
+            ->where('organization_id', $request->user()->organization_id)
+            ->unless($request->boolean('include_not_applicable'), fn ($query) => $query->where('applies', true))
+            ->orderBy('deadline')
+            ->orderBy('id')
+            ->get();
+
+        return ComplianceRequirementListResource::collection($requirements);
     }
 
     /**
