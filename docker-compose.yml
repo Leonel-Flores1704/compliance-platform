@@ -76,9 +76,9 @@ services:
       REDIS_HOST: redis
       AI_SERVICE_URL: ${AI_SERVICE_URL}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
-      FRONTEND_URL: http://localhost:5173
-      SANCTUM_STATEFUL_DOMAINS: localhost:5173
-      SESSION_SECURE_COOKIE: "true"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      SANCTUM_STATEFUL_DOMAINS: localhost:5173,127.0.0.1:5173,localhost,127.0.0.1
+      SESSION_SECURE_COOKIE: "false"
       SESSION_SAME_SITE: "lax"
     depends_on:
       db:
