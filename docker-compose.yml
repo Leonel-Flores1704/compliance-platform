@@ -38,6 +38,9 @@ services:
       LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-120b}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local-embeddings}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # CMP-29: the AI service writes document_chunks (schema owned by Laravel migrations).
+      DATABASE_URL: postgresql://${DB_USERNAME}:${DB_PASSWORD}@db:5432/${DB_DATABASE}
+      EMBEDDING_DIM: ${AI_EMBEDDING_DIMENSIONS:-1024}
     expose:
       - "8001"
     depends_on:
@@ -67,6 +70,7 @@ services:
       DB_DATABASE: ${DB_DATABASE}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      AI_EMBEDDING_DIMENSIONS: ${AI_EMBEDDING_DIMENSIONS:-1024}
       QUEUE_CONNECTION: redis
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis

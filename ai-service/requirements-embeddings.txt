@@ -1,0 +1,3 @@
+# Local embedding model bge-m3 (ADR-010). Installed only in the Docker image;
+# CI and unit tests use the mock embedding provider. torch comes from the CPU index (see Dockerfile).
+sentence-transformers==3.3.*

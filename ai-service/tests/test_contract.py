@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.indexing import embeddings as embeddings_module
 from app.main import app
 from app.security import get_expected_token
 from tests import documents
@@ -47,7 +48,8 @@ def test_validation_error_format():
     assert "question" in body["message"]
 
 
-def test_ingest_success_pdf():
+def test_ingest_success_pdf(database):
+    database.create_version()
     files = {"file": ("manual.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
@@ -60,12 +62,14 @@ def test_ingest_success_pdf():
     assert r.status_code == 200
     res = r.json()
     assert res["status"] == "processed"
-    assert res["chunks"] == 4
+    assert res["chunks"] > 0
+    assert res["chunks"] == database.scalar("SELECT count(*) FROM document_chunks")
     assert res["pages"] == 4
     assert res["ocr_used"] is False
 
 
-def test_ingest_success_docx_and_txt():
+def test_ingest_success_docx_and_txt(database):
+    database.create_version(document_id=11, version_id=1)
     # DOCX
     files = {"file": ("policy.docx", io.BytesIO(documents.read("data_retention_disposal_procedure.docx")), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     data = {
@@ -158,7 +162,8 @@ def test_ingest_scanned_pdf_is_sent_to_ocr():
     assert r.json()["pages"] == 2
 
 
-def test_ingest_uses_extension_when_mime_type_is_generic():
+def test_ingest_uses_extension_when_mime_type_is_generic(database):
+    database.create_version()
     files = {"file": ("notes.txt", io.BytesIO("Política de Seguridad".encode("cp1252")), "text/plain")}
     data = {**INGEST_FORM, "mime_type": "application/octet-stream"}
     r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)
@@ -183,8 +188,19 @@ def test_ingest_ocr_failed():
     }
 
 
-def test_ingest_embedding_failed():
-    files = {"file": ("embedding_failed_doc.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
+def test_ingest_embedding_failed(database, monkeypatch):
+    database.create_version()
+
+    class FailingProvider:
+        name = "failing"
+        dimensions = 1024
+
+        def embed(self, texts):
+            raise ConnectionError("embedding backend unavailable")
+
+    monkeypatch.setattr(embeddings_module, "get_embedding_provider", FailingProvider)
+    monkeypatch.setattr(embeddings_module.time, "sleep", lambda _: None)
+    files = {"file": ("manual.pdf", io.BytesIO(documents.read("information_security_policy.pdf")), "application/pdf")}
     data = {
         "organization_id": 1,
         "document_id": 10,
@@ -217,7 +233,8 @@ def test_ingest_provider_not_authorized():
     }
 
 
-def test_set_current_version_success():
+def test_set_current_version_success(database):
+    database.create_version(document_id=10, version_id=7)
     r = client.post(
         "/v1/documents/10/set-current",
         headers=AUTH_HEADERS,

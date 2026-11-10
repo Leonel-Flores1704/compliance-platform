@@ -68,6 +68,24 @@ jobs:
     defaults:
       run:
         working-directory: ai-service
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: ai_test
+          POSTGRES_USER: ai_test
+          POSTGRES_PASSWORD: ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_test -d ai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # CMP-29: chunk storage tests run against pgvector and must not be skipped in CI.
+      TEST_DATABASE_URL: postgresql://ai_test:ai_test@127.0.0.1:5432/ai_test
+      REQUIRE_DB_TESTS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
