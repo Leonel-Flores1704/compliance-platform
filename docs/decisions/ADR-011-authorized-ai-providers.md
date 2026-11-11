@@ -20,6 +20,7 @@ Only the following providers are authorized:
 | Provider | Hosts | Purpose | Data sent | Conditions |
 |---|---|---|---|---|
 | **Groq** | `api.groq.com` | LLM answer generation | The user's question and up to 4 retrieved fragments per request | Zero Data Retention **enabled** in Groq Data Controls. API key only in the server `.env`. |
+| **OpenAI API (testing)** | `api.openai.com` | LLM answer generation | The user's question and up to 4 retrieved fragments per request | API key only in the server `.env`; use only for tests or demos with non-sensitive data. |
 | **Local embeddings (bge-m3)** | none at runtime (runs inside `ai-service`) | Embeddings for fragments and questions | Nothing leaves the server | Model weights are downloaded from `huggingface.co` **only at image build time**. At runtime `HF_HUB_OFFLINE=1`. |
 | **Ollama (contingency, disabled by default)** | `ollama` (internal Docker hostname only, port 11434) | LLM answer generation when Groq is unavailable | Nothing leaves the server | Enabled only with `LLM_PROVIDER=ollama`. |
 | **Mock provider (tests only)** | none | Load tests (CMP-44) and unit tests | Nothing | Allowed only when `APP_ENV` is `testing` or `loadtest`. |
@@ -27,7 +28,7 @@ Only the following providers are authorized:
 ### Explicitly not authorized
 
 - **Google Gemini API free tier**, because free-tier content is used to improve Google's products and may be read by human reviewers.
-- Any other hosted AI API (OpenAI, Anthropic, Mistral, Cohere, OpenRouter, Hugging Face Inference API, etc.) until a new ADR approves it.
+- Any other hosted AI API (Anthropic, Mistral, Cohere, OpenRouter, Hugging Face Inference API, etc.) until a new ADR approves it.
 - Calling any AI service directly from the React frontend or from Laravel. All AI calls go through `ai-service` (CMP-07).
 
 ### Configuration file for CMP-28
@@ -42,6 +43,9 @@ providers:
     purposes: [llm]
     requires:
       zero_data_retention: true
+  - name: openai
+    hosts: [api.openai.com]
+    purposes: [llm]
   - name: local-embeddings
     hosts: []            # in-process, no network
     purposes: [embeddings]

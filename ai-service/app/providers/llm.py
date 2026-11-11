@@ -29,6 +29,8 @@ def generate_answer(
     headers = {}
     if settings.groq_api_key and settings.llm_provider == "groq":
         headers["Authorization"] = f"Bearer {settings.groq_api_key}"
+    if settings.openai_api_key and settings.llm_provider == "openai":
+        headers["Authorization"] = f"Bearer {settings.openai_api_key}"
 
     owns_client = client is None
     client = client or ProviderClient(settings=settings)

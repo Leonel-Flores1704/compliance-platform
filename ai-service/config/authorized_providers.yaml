@@ -5,6 +5,9 @@ providers:
     purposes: [llm]
     requires:
       zero_data_retention: true
+  - name: openai
+    hosts: [api.openai.com]
+    purposes: [llm]
   - name: local-embeddings
     hosts: []            # in-process, no network
     purposes: [embeddings]

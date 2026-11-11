@@ -9,6 +9,7 @@ logger = logging.getLogger("ai.security")
 
 DEFAULT_LLM_BASE_URLS = {
     "groq": "https://api.groq.com/openai/v1",
+    "openai": "https://api.openai.com/v1",
     "ollama": "http://ollama:11434/v1",
 }
 
@@ -21,6 +22,7 @@ class ProviderSettings:
     llm_base_url: str | None
     llm_model: str
     groq_api_key: str | None
+    openai_api_key: str | None
 
     @property
     def selected(self) -> set[str]:
@@ -37,6 +39,7 @@ def get_settings() -> ProviderSettings:
         llm_base_url=os.getenv("LLM_BASE_URL") or DEFAULT_LLM_BASE_URLS.get(llm_provider),
         llm_model=os.getenv("LLM_MODEL", "openai/gpt-oss-120b"),
         groq_api_key=os.getenv("GROQ_API_KEY") or None,
+        openai_api_key=os.getenv("OPENAI_API_KEY") or None,
     )
 
 

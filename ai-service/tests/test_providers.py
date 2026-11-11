@@ -185,7 +185,7 @@ def test_ingest_and_ask_with_authorized_provider_only_reach_allowed_hosts(monkey
 # --- Startup validation -------------------------------------------------------------
 
 
-@pytest.mark.parametrize("provider", ["gemini", "openai"])
+@pytest.mark.parametrize("provider", ["gemini", "anthropic"])
 def test_startup_fails_with_non_authorized_llm_provider(monkeypatch, caplog, provider):
     monkeypatch.setenv("LLM_PROVIDER", provider)
 
@@ -221,6 +221,22 @@ def test_startup_succeeds_with_authorized_providers(monkeypatch):
 
     with TestClient(app) as started:
         assert started.get("/health", headers=AUTH_HEADERS).status_code == 200
+
+
+def test_openai_provider_uses_authorized_host_and_api_key(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "local")
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "local-embeddings")
+    completion = {"choices": [{"message": {"content": "Test answer."}}]}
+
+    with respx.mock(assert_all_mocked=True) as router:
+        request = router.post("https://api.openai.com/v1/chat/completions").respond(200, json=completion)
+        answer = generate_answer([{"role": "user", "content": "Test question"}])
+
+    assert answer == "Test answer."
+    assert request.calls[0].request.headers["Authorization"] == "Bearer test-openai-key"
 
 
 def test_uvicorn_refuses_to_start_with_non_authorized_llm_provider(tmp_path):
