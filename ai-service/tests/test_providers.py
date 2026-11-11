@@ -68,7 +68,7 @@ def test_yaml_contains_exactly_the_providers_approved_in_adr_011():
     adr_yaml = re.search(r"```yaml\n(.*?)```", ADR_011.read_text(encoding="utf-8"), re.S).group(1)
 
     assert yaml.safe_load(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")) == yaml.safe_load(adr_yaml)
-    assert set(get_registry().providers) == {"groq", "local-embeddings", "ollama", "mock"}
+    assert set(get_registry().providers) == {"groq", "openai", "local-embeddings", "ollama", "mock"}
 
 
 # --- Blocked calls --------------------------------------------------------------

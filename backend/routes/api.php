@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
@@ -17,6 +18,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::post('/documents/{document}/versions', [DocumentController::class, 'storeVersion']);
     Route::get('/documents/{id}/versions/{versionId}/download', [DocumentController::class, 'download']);
+
+    Route::get('/alerts', [AlertController::class, 'index']);
+    Route::patch('/alerts/{alert}/read', [AlertController::class, 'markAsRead']);
 
     Route::get('/requirements', [RequirementController::class, 'index']);
     Route::post('/requirements', [RequirementController::class, 'store']);

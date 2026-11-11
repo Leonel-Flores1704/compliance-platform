@@ -95,7 +95,7 @@ services:
 
   queue-worker:
     build: ./backend
-    command: ["php", "artisan", "queue:work", "redis", "--tries=3"]
+    command: ["php", "artisan", "queue:work", "redis", "--queue=documents", "--tries=3", "--backoff=30,120,300", "--timeout=300"]
     restart: unless-stopped
     volumes:
       - ./backend:/var/www/html
