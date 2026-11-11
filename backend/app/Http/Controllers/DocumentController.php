@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Requests\StoreDocumentVersionRequest;
+use App\Jobs\ProcessDocumentVersion;
+use App\Models\Alert;
 use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
@@ -82,6 +84,29 @@ class DocumentController extends Controller
 
             [$document, $version] = $result;
 
+            $version->forceFill(['queued_at' => now()])->save();
+
+            try {
+                ProcessDocumentVersion::dispatch($version)
+                    ->onQueue('documents')
+                    ->afterCommit();
+            } catch (Throwable $e) {
+                $version->forceFill([
+                    'status' => DocumentVersion::STATUS_PROCESSING_FAILED,
+                    'failure_reason' => 'queue_unavailable',
+                ])->save();
+
+                Alert::create([
+                    'user_id' => $user->id,
+                    'document_version_id' => $version->id,
+                    'compliance_requirement_id' => null,
+                    'type' => 'queue_unavailable',
+                    'period_days' => 0,
+                    'message' => "We could not start processing \"{$document->name}\". Please upload the file again or contact your administrator.",
+                    'due_date' => now()->toDateString(),
+                ]);
+            }
+
             return response()->json([
                 'message' => 'Document uploaded successfully. It is now being processed.',
                 'id' => $document->id,
@@ -91,7 +116,7 @@ class DocumentController extends Controller
                     'name' => $document->name,
                     'category' => $document->category,
                     'access_level' => $document->access_level,
-                    'status' => $version->status,
+                    'status' => $version->refresh()->status,
                     'version_label' => $version->version_label,
                     'created_at' => $document->created_at,
                 ],
@@ -160,13 +185,36 @@ class DocumentController extends Controller
                 return $newVersion;
             });
 
+            $version->forceFill(['queued_at' => now()])->save();
+
+            try {
+                ProcessDocumentVersion::dispatch($version)
+                    ->onQueue('documents')
+                    ->afterCommit();
+            } catch (Throwable $e) {
+                $version->forceFill([
+                    'status' => DocumentVersion::STATUS_PROCESSING_FAILED,
+                    'failure_reason' => 'queue_unavailable',
+                ])->save();
+
+                Alert::create([
+                    'user_id' => $user->id,
+                    'document_version_id' => $version->id,
+                    'compliance_requirement_id' => null,
+                    'type' => 'queue_unavailable',
+                    'period_days' => 0,
+                    'message' => "We could not start processing \"{$document->name}\". Please upload the file again or contact your administrator.",
+                    'due_date' => now()->toDateString(),
+                ]);
+            }
+
             return response()->json([
                 'message' => 'New document version uploaded successfully.',
                 'version' => [
                     'id' => $version->id,
                     'document_id' => $document->id,
                     'version_label' => $version->version_label,
-                    'status' => $version->status,
+                    'status' => $version->refresh()->status,
                     'uploaded_at' => $version->uploaded_at,
                 ],
             ], 201);
