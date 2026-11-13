@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
@@ -13,7 +14,7 @@ class DocumentPolicy
      */
     public function create(User $user): Response
     {
-        if (in_array($user->role, ['administrator', 'compliance_staff'], true)) {
+        if (in_array($user->role, [Role::Administrator, Role::ComplianceStaff], true)) {
             return Response::allow();
         }
 
@@ -29,7 +30,7 @@ class DocumentPolicy
             return Response::deny('You do not have permission to view this document.');
         }
 
-        if ($user->role === 'general_employee' && $document->access_level !== 'all_staff') {
+        if ($user->role === Role::GeneralEmployee && $document->access_level !== 'all_staff') {
             return Response::deny('You do not have permission to view this document.');
         }
 
@@ -45,7 +46,7 @@ class DocumentPolicy
             return Response::deny('You do not have permission to upload a new version.');
         }
 
-        if (! in_array($user->role, ['administrator', 'compliance_staff'], true)) {
+        if (! in_array($user->role, [Role::Administrator, Role::ComplianceStaff], true)) {
             return Response::deny('You do not have permission to upload documents.');
         }
 
@@ -65,7 +66,7 @@ class DocumentPolicy
             return Response::deny('You do not have permission to download this document.');
         }
 
-        if ($user->role === 'general_employee' && $document->access_level !== 'all_staff') {
+        if ($user->role === Role::GeneralEmployee && $document->access_level !== 'all_staff') {
             return Response::deny('You do not have permission to download this document.');
         }
 
