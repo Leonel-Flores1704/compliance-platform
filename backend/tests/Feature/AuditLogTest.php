@@ -416,6 +416,8 @@ it('records an audit log for requirement.document_unlinked', function (): void {
 // Acceptance Criteria 3: Simulated audit failure (mocked) leaves the requirement unchanged and returns the exact message above.
 
 it('leaves requirement unchanged and returns HTTP 500 with exact message on simulated audit failure via API', function (): void {
+    // CMP-10 reserves compliance-status changes for Compliance Staff.
+    $this->user->update(['role' => 'compliance_staff']);
     $this->actingAs($this->user);
 
     $req = ComplianceRequirement::query()->create([

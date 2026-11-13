@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Services\DocumentSecurityScanner;
@@ -39,7 +40,7 @@ class StoreDocumentVersionRequest extends FormRequest
             return false;
         }
 
-        if (! in_array($user->role, ['administrator', 'compliance_staff'], true)) {
+        if (! in_array($user->role, [Role::Administrator, Role::ComplianceStaff], true)) {
             return false;
         }
 
