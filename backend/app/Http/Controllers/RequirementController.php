@@ -14,6 +14,7 @@ class RequirementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', ComplianceRequirement::class);
         $user = $request->user();
         $requirements = ComplianceRequirement::where('organization_id', $user->organization_id)->get();
 
@@ -22,6 +23,7 @@ class RequirementController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', ComplianceRequirement::class);
         $user = $request->user();
 
         $validated = $request->validate([
@@ -68,6 +70,8 @@ class RequirementController extends Controller
 
     public function show(Request $request, ComplianceRequirement $requirement): JsonResponse
     {
+        $this->authorize('view', $requirement);
+
         return response()->json($requirement);
     }
 
@@ -81,6 +85,12 @@ class RequirementController extends Controller
             'deadline' => 'sometimes|date',
             'responsible_user_id' => 'sometimes|exists:users,id',
         ]);
+
+        if (array_key_exists('status', $validated) && $validated['status'] !== $requirement->status) {
+            $this->authorize('updateStatus', $requirement);
+        } else {
+            $this->authorize('update', $requirement);
+        }
 
         try {
             DB::transaction(function () use ($requirement, $validated) {
@@ -102,6 +112,7 @@ class RequirementController extends Controller
 
     public function linkDocument(Request $request, ComplianceRequirement $requirement): JsonResponse
     {
+        $this->authorize('update', $requirement);
         $validated = $request->validate([
             'required_document_id' => 'required|exists:required_documents,id',
             'document_id' => 'required|exists:documents,id',
@@ -127,6 +138,7 @@ class RequirementController extends Controller
 
     public function unlinkDocument(Request $request, ComplianceRequirement $requirement, RequiredDocument $requiredDocument): JsonResponse
     {
+        $this->authorize('update', $requirement);
         try {
             DB::transaction(function () use ($requiredDocument) {
                 $requiredDocument->update(['document_id' => null]);

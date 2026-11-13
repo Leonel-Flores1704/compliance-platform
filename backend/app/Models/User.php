@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Role;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'locked_until' => 'datetime',
             'last_login_at' => 'datetime',
+            'role' => Role::class,
         ];
     }
 

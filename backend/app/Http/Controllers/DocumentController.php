@@ -26,6 +26,7 @@ class DocumentController extends Controller
      */
     public function store(StoreDocumentRequest $request): JsonResponse
     {
+        $this->authorize('create', Document::class);
         $user = $request->user();
         $file = $request->file('file');
         $validated = $request->validated();
@@ -135,6 +136,7 @@ class DocumentController extends Controller
      */
     public function storeVersion(StoreDocumentVersionRequest $request, Document $document): JsonResponse
     {
+        $this->authorize('createVersion', $document);
         $user = $request->user();
         $file = $request->file('file');
         $validated = $request->validated();
@@ -243,7 +245,7 @@ class DocumentController extends Controller
         $user = $request->user();
 
         if ($user->cannot('download', $document)) {
-            AuditLog::create([
+            AuditLog::query()->create([
                 'user_id' => $user->id,
                 'category' => 'security',
                 'action' => 'document.download_denied',
@@ -255,15 +257,13 @@ class DocumentController extends Controller
                     'document_id' => $document->id,
                     'version_id' => is_numeric($versionId) ? (int) $versionId : $versionId,
                     'access_level' => $document->access_level,
-                    'user_role' => $user->role,
+                    'user_role' => $user->role->value,
                 ],
                 'created_at' => now(),
             ]);
-
-            return response()->json([
-                'message' => 'You do not have permission to download this document.',
-            ], 403);
         }
+
+        $this->authorize('download', $document);
 
         $version = $document->versions()->find($versionId);
 
@@ -302,13 +302,7 @@ class DocumentController extends Controller
      */
     public function show(Request $request, Document $document): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->cannot('view', $document)) {
-            return response()->json([
-                'message' => 'You do not have permission to view this document.',
-            ], 403);
-        }
+        $this->authorize('view', $document);
 
         $currentVersion = $document->versions()
             ->where('is_current', true)
