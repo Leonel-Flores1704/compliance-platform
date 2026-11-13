@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Services\DocumentSecurityScanner;
 use Carbon\Carbon;
@@ -58,6 +59,23 @@ class StoreDocumentRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
+        $user = $this->user();
+        AuditLog::query()->create([
+            'user_id' => $user?->id,
+            'category' => 'security',
+            'action' => 'access.denied',
+            'resource_type' => null,
+            'resource_id' => null,
+            'ip_address' => $this->ip(),
+            'user_agent' => $this->userAgent(),
+            'metadata' => [
+                'route' => $this->path(),
+                'method' => $this->method(),
+                'user_role' => $user?->role?->value ?? $user?->role,
+            ],
+            'created_at' => now(),
+        ]);
+
         throw new HttpResponseException(response()->json([
             'message' => 'You do not have permission to upload documents.',
         ], 403));
