@@ -10,6 +10,8 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Throwable;
+use App\Enums\Role;
+use App\Http\Requests\Concerns\AuditsDeniedAccess;
 
 class StoreDocumentVersionRequest extends FormRequest
 {
@@ -39,7 +41,7 @@ class StoreDocumentVersionRequest extends FormRequest
             return false;
         }
 
-        if (! in_array($user->role, ['administrator', 'compliance_staff'], true)) {
+        if (! in_array($user->role, [Role::Administrator, Role::ComplianceStaff], true)) {
             return false;
         }
 
@@ -55,6 +57,8 @@ class StoreDocumentVersionRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
+        $this->auditAccessDenied();
+
         throw new HttpResponseException(response()->json([
             'message' => 'You do not have permission to upload documents.',
         ], 403));

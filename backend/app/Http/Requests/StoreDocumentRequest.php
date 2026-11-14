@@ -10,9 +10,12 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
+use App\Http\Requests\Concerns\AuditsDeniedAccess;
 
 class StoreDocumentRequest extends FormRequest
 {
+    use AuditsDeniedAccess;
+
     public const MAX_BYTES = 26214400; // Exactly 25 MiB (25 * 1024 * 1024)
 
     protected const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
@@ -58,11 +61,12 @@ class StoreDocumentRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
+        $this->auditAccessDenied();
+
         throw new HttpResponseException(response()->json([
             'message' => 'You do not have permission to upload documents.',
         ], 403));
     }
-
     /**
      * Prepare the data for validation.
      * Check for oversized requests that PHP INI or Content-Length would reject.

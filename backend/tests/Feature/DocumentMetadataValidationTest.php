@@ -259,9 +259,8 @@ it('accepts a new unique version for an existing document', function (): void {
             'version' => '2.0',
             'file' => $file2,
         ]);
-
     $versionResponse->assertStatus(201);
-
+    
     $versions = DocumentVersion::where('document_id', $documentId)->get();
     expect($versions)->toHaveCount(2);
 
@@ -341,8 +340,8 @@ it('rejects expiration date today or in the past with exact message', function (
 
     expect(Document::count())->toBe(0);
 })->with([
-    fn () => now()->toDateString(), // today
-    fn () => now()->subDay()->toDateString(), // yesterday
+    fn() => now()->toDateString(), // today
+    fn() => now()->subDay()->toDateString(), // yesterday
     '2020-01-01', // far past
 ]);
 
