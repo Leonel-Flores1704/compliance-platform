@@ -12,7 +12,6 @@ use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 

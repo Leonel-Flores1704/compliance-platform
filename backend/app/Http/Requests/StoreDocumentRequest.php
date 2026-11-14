@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuditsDeniedAccess;
 use App\Models\Document;
 use App\Services\DocumentSecurityScanner;
 use Carbon\Carbon;
@@ -10,7 +11,6 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
-use App\Http\Requests\Concerns\AuditsDeniedAccess;
 
 class StoreDocumentRequest extends FormRequest
 {
@@ -67,6 +67,7 @@ class StoreDocumentRequest extends FormRequest
             'message' => 'You do not have permission to upload documents.',
         ], 403));
     }
+
     /**
      * Prepare the data for validation.
      * Check for oversized requests that PHP INI or Content-Length would reject.

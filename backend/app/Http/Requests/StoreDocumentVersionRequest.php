@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Services\DocumentSecurityScanner;
@@ -10,8 +11,6 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Throwable;
-use App\Enums\Role;
-use App\Http\Requests\Concerns\AuditsDeniedAccess;
 
 class StoreDocumentVersionRequest extends FormRequest
 {
