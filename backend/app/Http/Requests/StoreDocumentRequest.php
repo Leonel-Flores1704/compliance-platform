@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuditsDeniedAccess;
 use App\Models\Document;
 use App\Services\DocumentSecurityScanner;
 use Carbon\Carbon;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
 
 class StoreDocumentRequest extends FormRequest
 {
+    use AuditsDeniedAccess;
+
     public const MAX_BYTES = 26214400; // Exactly 25 MiB (25 * 1024 * 1024)
 
     protected const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
@@ -58,6 +61,8 @@ class StoreDocumentRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
+        $this->auditAccessDenied();
+
         throw new HttpResponseException(response()->json([
             'message' => 'You do not have permission to upload documents.',
         ], 403));
