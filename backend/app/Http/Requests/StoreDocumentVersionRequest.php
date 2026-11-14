@@ -56,6 +56,8 @@ class StoreDocumentVersionRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
+        $this->auditAccessDenied();
+
         throw new HttpResponseException(response()->json([
             'message' => 'You do not have permission to upload documents.',
         ], 403));

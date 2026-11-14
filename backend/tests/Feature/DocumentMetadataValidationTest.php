@@ -259,7 +259,6 @@ it('accepts a new unique version for an existing document', function (): void {
             'version' => '2.0',
             'file' => $file2,
         ]);
-
     $versionResponse->assertStatus(201);
 
     $versions = DocumentVersion::where('document_id', $documentId)->get();

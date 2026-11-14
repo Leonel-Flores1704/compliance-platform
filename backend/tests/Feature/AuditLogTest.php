@@ -12,7 +12,6 @@ use App\Services\AuditLogger;
 use Carbon\Carbon;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -416,9 +415,15 @@ it('records an audit log for requirement.document_unlinked', function (): void {
 // Acceptance Criteria 3: Simulated audit failure (mocked) leaves the requirement unchanged and returns the exact message above.
 
 it('leaves requirement unchanged and returns HTTP 500 with exact message on simulated audit failure via API', function (): void {
-    // CMP-10 reserves compliance-status changes for Compliance Staff.
-    $this->user->update(['role' => 'compliance_staff']);
-    $this->actingAs($this->user);
+    $complianceUser = User::query()->create([
+        'organization_id' => $this->organization->id,
+        'name' => 'Audit Compliance',
+        'email' => 'audit_compliance@example.test',
+        'password' => 'password',
+        'role' => 'compliance_staff',
+    ]);
+
+    $this->actingAs($complianceUser);
 
     $req = ComplianceRequirement::query()->create([
         'organization_id' => $this->organization->id,
@@ -426,10 +431,10 @@ it('leaves requirement unchanged and returns HTTP 500 with exact message on simu
         'description' => 'Must not change on audit failure',
         'regulation' => 'GDPR',
         'deadline' => '2026-12-31',
-        'responsible_user_id' => $this->user->id,
+        'responsible_user_id' => $complianceUser->id,
         'status' => 'pending',
         'notification_periods' => [30, 15, 7, 1],
-        'created_by' => $this->user->id,
+        'created_by' => $complianceUser->id,
     ]);
 
     // Mock AuditLogger to force a failure
@@ -445,10 +450,8 @@ it('leaves requirement unchanged and returns HTTP 500 with exact message on simu
             'message' => 'The action could not be completed. Please try again.',
         ]);
 
-    // Verify DB rollback
     expect($req->fresh()->status)->toBe('pending');
 });
-
 it('leaves requirement unchanged and rolls back database transaction on simulated audit failure via direct model update', function (): void {
     $this->actingAs($this->user);
 
