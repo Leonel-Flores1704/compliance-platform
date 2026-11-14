@@ -5,6 +5,7 @@ import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import UsersPage from './pages/UsersPage'
 
 export default function App() {
   return (
@@ -24,6 +25,9 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute ability="view-documents" />}>
           <Route path="/documents/:id" element={<DocumentDetailPage />} />
+        </Route>
+        <Route element={<ProtectedRoute ability="manage-users" />}>
+          <Route path="/admin/users" element={<UsersPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

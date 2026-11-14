@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Organization;
 use App\Models\RequiredDocument;
+use App\Models\User;
 use App\Observers\ComplianceRequirementObserver;
 use App\Observers\DocumentObserver;
 use App\Observers\DocumentVersionObserver;
@@ -15,6 +16,7 @@ use App\Observers\OrganizationObserver;
 use App\Observers\RequiredDocumentObserver;
 use App\Policies\ComplianceRequirementPolicy;
 use App\Policies\DocumentPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Document::class, DocumentPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
         Gate::policy(ComplianceRequirement::class, ComplianceRequirementPolicy::class);
 
         Gate::define('manage-users', fn ($user): bool => $user->role === Role::Administrator);

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'role',
+        'must_change_password',
         'is_active',
     ];
 
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'phone' => 'encrypted',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
             'locked_until' => 'datetime',
             'last_login_at' => 'datetime',
             'role' => Role::class,
